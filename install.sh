@@ -142,6 +142,16 @@ for target in "${TARGETS[@]}"; do
     if [ "$MODE" = "link" ]; then
       echo "  [info] $name 无法创建符号链接（Windows 需开发者模式），改为复制"
     fi
+    # ln -s 失败时 Git Bash 可能留下一个空目录占位；不清掉会导致 cp -r 把源
+    # 复制进空壳里，形成 <name>/<name>/ 的嵌套（且脚本仍返回成功）。只删空目录。
+    if [ -d "$dst" ] && [ -z "$(ls -A "$dst" 2>/dev/null)" ]; then
+      rmdir "$dst" 2>/dev/null || true
+    fi
+    if [ -e "$dst" ]; then
+      echo "  [FAIL] $name 目标仍存在，跳过以避免嵌套复制" >&2
+      failed=$((failed+1))
+      continue
+    fi
     if cp -r "$src" "$dst"; then
       write_marker "$dst"
       echo "  [copy] $name（改动后需重跑本脚本）"
