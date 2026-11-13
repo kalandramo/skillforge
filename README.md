@@ -22,14 +22,42 @@
 
 ## 安装
 
+需要 **bash**（macOS/Linux 自带；Windows 用 Git Bash 或 WSL）：
+
 ```bash
 git clone https://github.com/kalandramo/skillforge.git ~/code/skillforge
 bash ~/code/skillforge/install.sh
 ```
 
-脚本会把 `skills/*` 挂到 `~/.workbuddy/skills/` 与 `~/.claude/skills/`（存在的那个或多个）。优先符号链接，Windows 下自动回退到目录联接，再失败才复制。
+Windows 且只有 PowerShell 时，用等价的原生脚本（推荐，能建 Junction，改动自动同步）：
+
+```powershell
+git clone https://github.com/kalandramo/skillforge.git "$env:USERPROFILE\code\skillforge"
+& "$env:USERPROFILE\code\skillforge\install.ps1"
+```
+
+### 平台差异
+
+| 环境 | 脚本 | 挂载方式 | 仓库改动后 |
+|---|---|---|---|
+| macOS / Linux | `install.sh` | 符号链接 | 自动生效 |
+| Windows + Git Bash | `install.sh` | 符号链接（需开发者模式），失败则复制 | 复制模式下需重跑脚本 |
+| Windows + PowerShell | `install.ps1` | 目录联接 Junction（免管理员） | 自动生效 |
+
+两个脚本都挂到 `~/.workbuddy/skills/` 与 `~/.claude/skills/`（存在的那些）。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
+
+检查本地安装是否落后于仓库：
+
+```bash
+bash install.sh --check
+```
+```powershell
+.\install.ps1 -Check
+```
 
 **装完需新开会话**，技能列表在会话启动时加载。
+
+> Windows 上不必强求 Junction：`install.sh` 在无开发者模式时会退化为复制，功能完全正常，只是改完仓库要再跑一次脚本。`install.ps1` 用 Junction 避免这一步。
 
 ## 快速开始
 
