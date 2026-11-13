@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "description": "Personal skill collection for AI-assisted development: a single /dev entry, a deterministic Go quality gate, and a language-agnostic iteration ledger.",
   "author": {
-    "name": "Murphy"
+    "name": "Murphy",
+    "url": "https://github.com/kalandramo"
   },
+  "homepage": "https://github.com/kalandramo/skillforge",
+  "repository": "https://github.com/kalandramo/skillforge",
   "license": "MIT",
   "keywords": [
     "skills",
