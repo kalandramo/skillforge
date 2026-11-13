@@ -20,6 +20,9 @@
   "skills": [
     "./skills/dev",
     "./skills/go-gate",
-    "./skills/loop"
+    "./skills/loop",
+    "./skills/modern-go",
+    "./skills/refactor",
+    "./skills/smell"
   ]
 }

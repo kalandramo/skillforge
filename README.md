@@ -4,15 +4,45 @@
 
 不是又一个 prompt 集合——每个技能都配套一个**能返回退出码的脚本**，判定不靠模型自述。
 
-## 三个技能
+## 六个技能，两层
 
-| 技能 | 层 | 一句话 | 判据来源 |
-|---|---|---|---|
-| [`dev`](skills/dev/SKILL.md) | 编排 | 一条需求进来，走完判据→设计→切片→实现→门禁→审阅→判定→收尾 | 调用下面两个 |
-| [`go-gate`](skills/go-gate/SKILL.md) | 验证 | Go 门禁：`mod_guard`/`build`/`vet`/`test`/`race`/`lint`/`bench` | 进程退出码 + bench 中位数 |
-| [`loop`](skills/loop/SKILL.md) | 判定 | 记账、epsilon 比较、keep/revert、确定性停止条件 | 指标数值 |
+**流程层** 决定做什么、做到什么程度，三个脚本各有唯一职责：
+
+| 技能 | 一句话 | 判据来源 |
+|---|---|---|
+| [`dev`](skills/dev/SKILL.md) | 一条需求进来，走完判据→诊断→设计→切片→实现→门禁→审阅→判定→收尾，内层循环 N 轮 | 调用下面两个 |
+| [`go-gate`](skills/go-gate/SKILL.md) | Go 门禁：`mod_guard`/`build`/`vet`/`test`/`race`/`lint`/`bench` | 进程退出码 + bench 中位数 |
+| [`loop`](skills/loop/SKILL.md) | 记账、epsilon 比较、keep/revert、确定性停止条件 | 指标数值 |
 
 三者职责不能互相替代：`go-gate` 答"这版对不对"，`loop` 答"这版要不要留、还继续吗"，`dev` 答"接下来做什么"。**换语言只需替换 `go-gate`，判定逻辑不动。**
+
+**能力层** 只被按需调用，不参与流程决策：
+
+| 技能 | 行数 | 用在 | 加载方式 |
+|---|---:|---|---|
+| [`modern-go`](skills/modern-go/SKILL.md) | 1162 | `dev` 阶段 3，改动含 `.go` 时 | **索引脚本**：先取 30–46 行清单，命中后再抽单节 |
+| [`refactor`](skills/refactor/SKILL.md) | 716 | `dev` 阶段 5，结构性 blocking 或 `refactor` 轮次 | `grep '^### '` 定位手法，抽一节 |
+| [`smell`](skills/smell/SKILL.md) | 750 | `dev` 阶段 0.5（仅存量改造），每需求最多 1 次 | 全量读一次，报告落地后即卸载 |
+
+三者合计约 2600 行 / 35k tokens。**任何一轮循环都不整份加载**——读进去却只用上一条规则，等于把后续轮次的上下文预算提前烧掉。这是 `dev` 里"上下文预算"一节的来源。
+
+### modern-go 为什么要索引脚本
+
+它有 46 条规则，每条带 Go 版本门控（从 1.0 到 1.27）。原技能假设"一次性现代化整个项目"，而循环里每次只需要改一处。所以配了 `scripts/modern_index.sh`：
+
+```bash
+bash skills/modern-go/scripts/modern_index.sh --root <repo>
+# 项目 Go 版本: 1.22
+# 规则总数: 46
+# 可用规则（抽正文: --section <起始行>）:
+#    49-61    1.0+   `time.Since`
+#   ...
+# 汇总: 可用 32 / 不可用 14
+
+bash skills/modern-go/scripts/modern_index.sh --section 391    # 只抽 slices 那一节
+```
+
+行号每次运行时从 SKILL.md 现算，**不做硬编码**——在文档里插入内容不会让索引失效。
 
 ## 三条设计原则
 
@@ -101,14 +131,17 @@ skills/<name>/
 
 - 上游的 `review-it` 依赖宿主内置 `/review`、`codex review`，在无这些命令的环境不可用 → 本仓库改为 `dev` 阶段 5 的自包含子代理审阅
 - 上游的判定分散在提示词里 → 本仓库抽成 `loop` 脚本，停止条件有确定性输出
-- 上游 23 个技能同时启用会让上下文在第一步就吃紧 → 本仓库按需增加，只收录自己真正在用的
+- 上游 23 个技能同时启用会让上下文在第一步就吃紧 → 本仓库只收录 Go 后端链路真正用得上的六个，其余留在上游
+- `modern-go` 原样搬入会一次吃掉 15k tokens → 本仓库配了 `modern_index.sh` 做版本切片，按需加载单节
 
-需要上游的 `modern-go`、`refactor`、`smell` 等能力时，把上游加成 remote 后按需取用，而不是整体合并：
+`modern-go`、`refactor`、`smell` 原文来自上游，本仓库只对 `modern-go` 增加了索引脚本与开头使用说明，规则内容未改动。
+
+需要其它能力（`prd`、`to-design`、`to-issues` 等）时，把上游加成 remote 按需取用，不整体合并：
 
 ```bash
 git remote add upstream https://github.com/smallnest/goal-workflow.git
 git fetch upstream
-git checkout upstream/master -- skills/modern-go    # 单独取一个，审视后提交
+git checkout upstream/master -- skills/prd    # 单独取一个，审视后提交
 ```
 
 ## License
