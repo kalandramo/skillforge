@@ -1,0 +1,22 @@
+{
+  "name": "skillforge",
+  "version": "0.1.0",
+  "description": "Personal skill collection for AI-assisted development: a single /dev entry, a deterministic Go quality gate, and a language-agnostic iteration ledger.",
+  "author": {
+    "name": "Murphy"
+  },
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "go",
+    "quality-gate",
+    "iteration",
+    "benchmark"
+  ],
+  "skills": [
+    "./skills/dev",
+    "./skills/go-gate",
+    "./skills/loop"
+  ]
+}
