@@ -23,7 +23,7 @@
 ## 安装
 
 ```bash
-git clone <this-repo> ~/code/skillforge
+git clone https://github.com/kalandramo/skillforge.git ~/code/skillforge
 bash ~/code/skillforge/install.sh
 ```
 
