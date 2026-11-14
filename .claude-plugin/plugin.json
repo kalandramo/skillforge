@@ -23,6 +23,7 @@
     "./skills/loop",
     "./skills/modern-go",
     "./skills/refactor",
-    "./skills/smell"
+    "./skills/smell",
+    "./skills/jev-judgment"
   ]
 }
