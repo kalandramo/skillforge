@@ -12,7 +12,7 @@
 |---|---|---|
 | [`dev`](skills/dev/SKILL.md) | 一条需求进来，走完判据→诊断→设计→切片→实现→门禁→审阅→判定→收尾，内层循环 N 轮 | 调用下面两个 |
 | [`go-gate`](skills/go-gate/SKILL.md) | Go 门禁：`mod_guard`/`build`/`vet`/`test`/`race`/`lint`/`bench` | 进程退出码 + bench 中位数 |
-| [`loop`](skills/loop/SKILL.md) | 记账、epsilon 比较、keep/revert、确定性停止条件 | 指标数值 |
+| [`loop`](skills/loop/SKILL.md) | 记账、epsilon 比较、keep/revert、账本不变量审计、基准漂移检测、确定性停止条件（含震荡检测） | 指标数值 + 账本不变量 |
 
 三者职责不能互相替代：`go-gate` 答"这版对不对"，`loop` 答"这版要不要留、还继续吗"，`dev` 答"接下来做什么"。**换语言只需替换 `go-gate`，判定逻辑不动。**
 
@@ -119,8 +119,10 @@ skills/<name>/
 └── scripts/*.sh          执行器：输出 JSON + 退出码，零外部依赖
 .dev/                     每个被管理的仓库里的状态目录
 ├── loop.conf             判定参数（提交到版本控制）
-├── results.tsv           每轮记录
-└── REPORT.md             人读报告
+├── results.tsv           每轮记录（gitignore）
+├── measure.cksum         基准指纹（gitignore，drift 检测）
+├── hooks/after.sh        迭代钩子（可选，提交）
+└── REPORT.md             人读报告（gitignore）
 ```
 
 脚本刻意**不依赖 `jq`**：配置用 shell 变量，直接 `source`。少一个隐式依赖就少一类"装完不报错但行为诡异"的故障。
@@ -143,6 +145,10 @@ git remote add upstream https://github.com/smallnest/goal-workflow.git
 git fetch upstream
 git checkout upstream/master -- skills/prd    # 单独取一个，审视后提交
 ```
+
+## 与 autoresearch 的关系
+
+`loop` 的账本不变量审计、ASI 记忆（假设/下一步/弃用理由）、基准漂移检测、震荡检测与迭代钩子借鉴了 [karpathy/autoresearch](https://github.com/karpathy/autoresearch) 思路的 zcode 官方 `autoresearch` 插件，按本仓库「零依赖 bash + 退出码判定」原则重写进 `loop.sh`——未引入其 MCP server、宿主 hooks 与 dashboard，护栏智能保留，载体不搬。
 
 ## License
 

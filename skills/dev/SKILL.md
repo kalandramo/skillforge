@@ -236,11 +236,11 @@ V=$(bash $LOOP decide "$METRIC" --goal="$GOAL")   # KEEP | REVERT | INVALID | BA
 |---|---|---|---|
 | fail | 任意 | 不调用 | 记 `gatefail`，回 3b（不判定） |
 | pass | >0 | 不调用 | 未完成，回 3b |
-| pass | 0 | `KEEP` | `loop keep <round> <metric> "<假设>" <goal>` |
-| pass | 0 | `REVERT` | `loop revert`，并 `loop record <round> revert <metric> PASS <goal> "<假设>"` |
+| pass | 0 | `KEEP` | `loop keep <round> <metric> "<假设>" <goal> --hyp="<假设>" --next="<下一步>"` |
+| pass | 0 | `REVERT` | `loop revert`，并 `loop record <round> revert <metric> PASS <goal> "<假设>" --hyp="<假设>" --rollback="<为何放弃>"` |
 | pass | 0 | `INVALID` | **停止循环**，报告"指标抽取失败"，不得重试同一命令 |
 
-commit message 由 `loop keep` 生成：`dev(round N): <假设> [<metric>=<value>]`。
+commit message 由 `loop keep` 生成：`dev(round N): <假设> [<metric>=<value>]`。**revert 行必须带 `--rollback`**——代码被回滚后，弃用理由是唯一存活的记忆，下一轮选假设前先读它（`loop report` 的"弃用方向与理由"一节）。
 
 每次结算后同步写 `run.json` 的 `rounds_done`、`history`、`metric.best`、`updated_at`——它记录**流程走到了哪**，指标账本以 `.dev/results.tsv` 为准，两者不得互相覆盖。
 
@@ -249,10 +249,10 @@ commit message 由 `loop keep` 生成：`dev(round N): <假设> [<metric>=<value
 每轮结算后执行一次：
 
 ```bash
-bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_failures | STOP:max_rounds
+bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_failures | STOP:doom_loop | STOP:max_rounds
 ```
 
-收到 `STOP:*` 即进入阶段 7，把停止原因原样写进报告。另有两条脚本无法判断、需人工确认的停止条件：全部 `criteria.done=true`（编排层检查），以及用户中断。
+收到 `STOP:*` 即进入阶段 7，把停止原因原样写进报告。`STOP:doom_loop` 表示窗口内同一假设重复出现（原地打转或 A→B→A 震荡）——不要换个措辞重提同一假设，必须换结构性不同的方向。另有两条脚本无法判断、需人工确认的停止条件：全部 `criteria.done=true`（编排层检查），以及用户中断。
 
 ## 阶段 7：收尾
 
@@ -292,6 +292,8 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 | 起始门禁就失败 | 先修复到全绿再进入 round 1，作为 `round 0` 记录，不占 `rounds_max` |
 | go-gate 返回 rc=2 | 环境问题（无 go / 非 Go 模块），停止并报告 |
 | benchmark 抖动导致判定摇摆 | 提高 `BENCH_RUNS` 到 7；不要降低 epsilon 来"稳定"结论 |
+| `loop` 报告基准漂移（drift 警告） | 停止比较新旧指标。有意变更基准 → `loop drift --set` 或重记 `baseline` 开新段；否则恢复基准。**改基准后继续比数字等于造假** |
+| `loop keep`/`record` 被账本审计拒绝 | 审计输出说明账本与本轮矛盾（如 perf 轮 keep 未改善、轮次倒退）。修正本轮判定流程，不要绕过审计；历史行不得手工改写 |
 | 需求需要改依赖 | 用 `--allow-mod-changes`，并在报告"未解决"中列明新增依赖及理由 |
 | 子代理审阅返回空 | 视为 `clean`，但记录"审阅未产出发现"，不要伪造审阅结论 |
 
@@ -313,8 +315,10 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 ```
 .dev/
 ├── run.json          流程状态（阶段、验收标准、每轮假设；可 gitignore）
-├── loop.conf         判定参数（epsilon / 轮数上限 / 目标；应提交）
-├── results.tsv       判定账本（每轮指标与判决，由 loop 维护）
+├── loop.conf         判定参数（epsilon / 轮数上限 / MEASURE_CMD 漂移检测对象；应提交）
+├── results.tsv       判定账本（每轮指标、判决、ASI、commit，由 loop 维护并审计）
+├── measure.cksum     基准指纹（gitignore，由 loop baseline 锁定）
+├── hooks/after.sh    迭代钩子（可选，应提交；loop 每次记账后调用）
 ├── smell.md          存量诊断报告（可选，仅阶段 0.5；后续轮次读它而非重读源码）
 ├── tasks/<id>.md     切片（可选）
 ├── gate/<ts>/        每轮门禁日志（由 go-gate 写入）
