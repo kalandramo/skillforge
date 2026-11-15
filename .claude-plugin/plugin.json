@@ -31,6 +31,13 @@
     "./skills/smell",
     "./skills/statechart",
     "./skills/typescript",
-    "./skills/writing"
+    "./skills/writing",
+    "./skills/arena",
+    "./skills/interrogate",
+    "./skills/poteto-mode",
+    "./skills/reflect",
+    "./skills/show-me-your-work",
+    "./skills/sharpen",
+    "./skills/swarm"
   ]
 }
