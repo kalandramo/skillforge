@@ -1,13 +1,13 @@
 ---
 name: principles
 display_name: "工程原则（Principles）"
-description: "24 条可复用工程原则的参考集，分设计、实现、验证、重构、并发、执行六类，供 dev、loop、go-gate、refactor 在相应阶段按名引用。当用户问「有哪些工程原则」「这条原则怎么说」，或其它技能需要在阶段内引用时读取。不单独承担任务。"
+description: "26 条可复用工程原则的参考集，分设计、实现、验证、重构、并发、执行六类，供 dev、loop、go-gate、refactor、writing 在相应阶段按名引用。当用户问「有哪些工程原则」「这条原则怎么说」，或其它技能需要在阶段内引用时读取。不单独承担任务。"
 user-invocable: true
 ---
 
 # Principles — 工程原则参考
 
-> 本文件由 `kalandramo/pstack` 的 24 条 `principle-*` 技能合并聚合成单篇参考，同作者，遵循 MIT。原每条原则是独立技能，这里聚合为单篇以避免 24 个技能同时占表面积。dev / loop / go-gate / refactor 在相应阶段引用本文件的具体条目，不重复展开。
+> 本文件由 `kalandramo/pstack` 的 24 条 `principle-*` 技能合并聚合成单篇参考，同作者，遵循 MIT。原每条原则是独立技能，这里聚合为单篇以避免 24 个技能同时占表面积。dev / loop / go-gate / refactor / writing 在相应阶段引用本文件的具体条目，不重复展开。「设计」类末尾两条 `label-the-provenance` 与 `no-soft-praise` 为本仓库新增（源自 [Duoasa-skill](https://github.com/Duoasa/Duoasa-skill)，MIT），供 `writing` §4 引用。
 
 ## 设计（Design）
 
@@ -28,6 +28,12 @@ user-invocable: true
 
 ### boundary-discipline（边界纪律）
 校验/类型窄化/错误处理放在系统边界（CLI 参数、配置文件、外部 API、网络协议）；内部无条件信任类型，业务逻辑在纯函数里，壳层薄而机械。边界解析为领域类型后不外泄传输/存储/框架/线类型；边界内不重新校验已校验的数据。
+
+### label-the-provenance（标注建议的依据）
+判断类建议（审美/命名/交互/优先级）标明依据属于哪一档：使用者已表达的选择、内容与场景的约束、模型自己的倾向。三档混说就是把主观包装成事实，「你想要的是……」「业界都这样」是最常见的两种伪装。建议只有可核对才能被推翻，不可核对的只能被接受或无视。写法见 `writing` §4。
+
+### no-soft-praise（不用赞美缓冲批评）
+问题会影响表达或使用时，说清具体哪里、影响到什么；不要在前后加「很棒」「很有设计感」做缓冲——缓冲会把判断抵消成客套。支持使用者的品味不等于认可其产物：认可他的选择权，同时如实报告影响可用性的问题。空泛的「建议优化一下」不算批评，只算表态。
 
 ## 实现（Implementation）
 

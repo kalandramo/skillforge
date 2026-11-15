@@ -2,7 +2,7 @@
 
 给 AI 编码助手装的一套工作方法。主力场景是 Go 后端。带语言绑定的只有四个：`go-gate`、`modern-go` 管 Go，`ts-gate`、`typescript` 管 TS/JS；其余技能与技术栈无关。
 
-装好之后**你不需要记命令，也不用背技能名**——正常说人话就行，助手会自己挑该用哪个。每个技能都配了一个能返回退出码的脚本，所以"做完没做完"由程序判定，不由模型自己声称。
+装好之后**你不需要记命令，也不用背技能名**——正常说人话就行，助手会自己挑该用哪个。判定类技能（`go-gate`、`ts-gate`、`loop`）都配有能返回退出码的脚本，所以"做完没做完"由程序判定，不由模型自己声称；`writing`、`explain` 这类产出型技能没有退出码，判据是人。
 
 - 第一次用 → [三分钟上手](#三分钟上手)
 - 不知道该怎么说 → [常用台词速查](#常用台词速查)
@@ -84,6 +84,7 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 | 换成更现代的 Go 写法 | 现代化这段 Go / 更地道的写法 / modernize | `modern-go` |
 | 弄懂一段代码 | 这段代码怎么跑的 / 讲清楚这个 / 为什么这么写 | `explain` |
 | 写文档或提交信息 | 写 README / 写 PR 描述 / 写提交信息 / 去 AI 味 | `writing` |
+| 定设计方向 / 判断这版好不好 | 这个设计好不好 / 配色 / 帮我改稿 / 设计方向怎么定 | `writing`（§4） |
 | 几个方案挑一个 | 多做几版比比 / 几个方案挑一个 / 并行试几种做法 | `arena` |
 | 分头并行地查 | 分头查 / 并行覆盖一下 / 多切片扫一遍 | `swarm` |
 | 事后复盘沉淀 | 复盘一下 / 总结经验 / 沉淀成技能 | `reflect` |
@@ -149,9 +150,9 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 | [`refactor`](skills/refactor/SKILL.md) | 716 | `dev` 阶段 5，结构性 blocking 或 `refactor` 轮次 | `grep '^### '` 定位手法，抽一节 |
 | [`smell`](skills/smell/SKILL.md) | 750 | `dev` 阶段 0.5（仅存量改造），每需求最多 1 次 | 全量读一次，报告落地后即卸载 |
 | [`jev-judgment`](skills/jev-judgment/SKILL.md) | 见文件 | 按需：筛查不可信文本、对照证据核实、语义选优/分类、完成门禁 | 全量读；**需宿主配置 jev MCP + TypeSafe API key**，未配置时不可用 |
-| [`principles`](skills/principles/SKILL.md) | ~95 | dev/loop/go-gate/refactor 在相应阶段引用 | 按需读（参考型，非单独触发）；由 pstack 的 24 条 principle-* 合并而来 |
+| [`principles`](skills/principles/SKILL.md) | ~100 | dev/loop/go-gate/refactor/writing 在相应阶段引用 | 按需读（参考型，非单独触发）；由 pstack 的 24 条 principle-* 合并而来，另新增 2 条 |
 | [`figure-it-out`](skills/figure-it-out/SKILL.md) | ~90 | 无更窄剧本时的通用兜底编排（/figure-it-out） | 全量读；改编并合并自 pstack 的 figure-it-out |
-| [`writing`](skills/writing/SKILL.md) | ~280 | 写 / 审文档、PR 描述、提交信息；润色去 AI 味；前端 UI 收尾闸门 | 全量读；由 pstack 的 technical-writing + unslop + impeccable 合并而来 |
+| [`writing`](skills/writing/SKILL.md) | ~310 | 写 / 审文档、PR 描述、提交信息；润色去 AI 味；前端 UI 收尾闸门；设计方向与改稿判断（§4） | 全量读；由 pstack 的 technical-writing + unslop + impeccable 合并而来，另加设计判断一节（源自 Duoasa-skill） |
 | [`explain`](skills/explain/SKILL.md) | ~200 | 讲解 / 走查代码（how）、追溯设计动机（why）、大白话传授（teach）、复述目标 | 全量读；由 pstack 的 bro + in-your-own-words + how + why + teach 合并而来 |
 | [`statechart`](skills/statechart/SKILL.md) | 见文件 + scripts/ | 用 TLA+ 画状态图并对运行结果做形式化检查 / 可视化 | 全量读；自带 TypeScript 工程（scripts/），需 Node |
 | [`automate-me`](skills/automate-me/SKILL.md) | 见文件 | 把用户工作习惯提炼成专属 -mode 技能 | 全量读；改编并合并自 pstack 的 automate-me |
@@ -188,7 +189,7 @@ bash skills/modern-go/scripts/modern_index.sh --section 391    # 只抽 slices �
 
 以下三节（设计原则、描述即触发条件、modern-go 索引）是**改技能时才需要看**的，只想用的话可以直接跳到[安装](#安装)。
 
-1. **判据必须是机器可读的。** 不用"评分 85/100"这类自然语言打分——格式一漂移就误判。门禁看退出码，性能看 bench 中位数。
+1. **判据必须是机器可读的。** 不用"评分 85/100"这类自然语言打分——格式一漂移就误判。门禁看退出码，性能看 bench 中位数。表达与判断类内容（`writing` §1–§4）本就没有机器判据，只能由人核；这类内容不声称确定性判定，也不用"建议优化"这类假分数充数。
 2. **没有度量就不许出性能结论。** 无 benchmark 时性能阶段显式关闭并在报告里写明"结论不成立"。产生假结论比不产生结论危险得多。
 3. **每轮只允许一个可证伪的假设。** 一轮里同时重构加修 bug 加调优，事后无法归因，指标变化说明不了任何事。
 
@@ -204,7 +205,7 @@ bash skills/modern-go/scripts/modern_index.sh --section 391    # 只抽 slices �
 
 - **只用一个 `description` 字段**，中英触发词都放进去。不写 `description_zh` / `description_en`——不确定宿主读哪个字段，单字段最稳，而且省掉 2/3 的描述体积。
 - **不写来源说明**。"合并自 xxx 项目（MIT）"对触发零贡献，却占着每次会话都要加载的预算。来源统一记在本文件的来源章节。
-- **控制在 480 字节内**。描述越长，关键触发词的权重越低。当前 22 条合计约 7.0KB。
+- **控制在 480 字节内**。描述越长，关键触发词的权重越低。当前 22 条合计约 7.1KB。
 
 新增技能或改描述后跑一次校验：
 
@@ -339,6 +340,17 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 另有五组技能同样合并自 pstack（同作者，MIT），把原分散的独立技能聚合成单篇、并解开对 pstack 其它技能（poteto-mode 等）的硬依赖：`writing`（technical-writing + unslop + impeccable 合并，覆盖文档规范 / 去 AI 味 / 前端 UI 去 AI 味）、`explain`（bro + in-your-own-words + how + why + teach 合并，覆盖讲解 / 走查 / 动机追溯 / 传授，子代理模型改为由宿主自动选定）、`automate-me`（提炼专属 -mode 技能，unslop 引用改为指向本仓库 `writing`）、`typescript`（TS 类型纪律，原 `type-system-discipline` / `boundary-discipline` 原则引用改为指向本仓库 `principles`）、`statechart`（TLA+ 状态图形式化验证，原样迁入并保留自带 TypeScript 工程）。`typescript` 已接入 `dev` 阶段 3 的 `.ts`/`.tsx` 实现分支。
 
 另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 24 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。这批内容原为 pstack 的 Cursor 版，收编时按三客户端重写：各 playbook 中对 `architect`（→ `dev` 设计阶段）、`unslop`/`deslop`/`impeccable`（→ `writing` 的 Unslop / Impeccable 章节）、`principle-*`（→ `principles` 对应条目）的引用已统一改写为本仓库技能；模型选择一律交给宿主自动选型（删掉了 `~/.cursor/rules/pstack-models.mdc` 这类配置文件与 `claude-opus-5-5-xhigh` / `grok-4.7-xhigh-fast` 这类硬编码 slug）；Cursor 专有的 cloud agent、`control-cli`/`control-ui`、`create-skill` 等引用改为三家各自可行的替代（浏览器自动化、`skill-creator`、Agent Skills 格式）；子代理工具名按 WorkBuddy `Agent` / ZCode 与 Qoder `Task` 区分。
+
+### Duoasa-skill
+
+`writing` §4（设计判断）与 `principles` 的 `label-the-provenance`、`no-soft-praise` 两条源自 [Duoasa/Duoasa-skill](https://github.com/Duoasa/Duoasa-skill)（MIT，© 2026 Duoasa）的「做自己」。
+
+上游是一个 21 行 / 1551 字节的态度声明：7 条协作准则，无步骤、无判据、无脚本、无产物模板。它主张"不要把审美打包成预设交出去"——这个立场本仓库确实缺，但它本身不构成一个可判定技能。原样收录就是第 23 个纯提醒型技能，与"判定由程序给出"的定位冲突。因此不新增技能，只做两件事：
+
+- 把立场落进 `writing` §4，与 §3（Impeccable 负面清单）配成"不要什么 / 要什么由谁定"的一对；原文缺的依据分档、候选形态、批评写法按本仓库习惯补齐
+- 把其中可命名的两条抽成 `principles` 条目（`label-the-provenance`、`no-soft-praise`），供其它技能按名引用
+
+未采纳的部分：上游 README 主张"把时间投在基础设施而非短流程 skill"——那是给工具作者的路线建议，不是给模型的行为约束，搬进来只会变成空话。
 
 ## License
 

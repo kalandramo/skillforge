@@ -48,3 +48,9 @@ Verify the synthesized artifact like any other output, per the **prove-it-works*
 ## Outputs
 
 One synthesized artifact, with a short synthesis note alongside naming the base and why, the cross-judge's verdict or that Phase C skipped the judge, each graft with its source candidate, what was rejected and why, any convergence or dropouts, and the verification result.
+
+## Boundary
+
+All of the above is a decision made against engineering criteria — tests, benchmarks, correctness — and it ends with one shape chosen for the owner.
+
+When the decision is not yours to make because it rests on the owner's taste (visual direction, tone, product feel), do not pick for them and call it the winner. Produce the candidates as artifacts they can open, state what each trades away, label the provenance of your own suggestions, and hand the choice back — see §4 of the `writing` skill.
