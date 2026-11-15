@@ -1,10 +1,8 @@
 ---
 name: writing
-description: "写作与去 AI 味规范集合：分层技术写作标准（Diátaxis / Google 开发者风格 / STE / Global English）、Unslop 去 AI 味模式清单、Impeccable 前端 UI 去 AI 味确定性检测器（npx impeccable）。适用于写或审文档 / RFC / README / PR 描述 / 提交信息、润色任意文本去 AI 味、生成或改动前端 UI 时的最后一道闸门。合并自 kalandramo/pstack 的 technical-writing、unslop、impeccable 三个技能（同作者，MIT）。"
+display_name: "写作与去 AI 味（Writing）"
+description: "写作与去 AI 味规范：技术写作分层标准、Unslop 模式清单（去 AI 腔）、Impeccable 前端 UI 检测器。当用户说「写 README」「写 PR 描述」「写提交信息」「润色一下」「去 AI 味」「这段太机器味」「界面收尾」时使用。不适用于讲解代码原理（用 explain）。"
 user-invocable: true
-allowed-tools:
-  - Bash(npx:*)
-  - Read
 ---
 
 # Writing — 写作与去 AI 味

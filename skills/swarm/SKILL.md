@@ -2,9 +2,8 @@
 name: "swarm"
 version: "1.0.0"
 display_name: "并行扇出覆盖（Swarm）"
-description: "并行多切片探索/校验：用覆盖矩阵、竞速（race）、夹击（gauntlet）和探索分区来展开任务，避免单线盲点。"
-description_zh: "并行多切片探索/校验：用覆盖矩阵、竞速（race）、夹击（gauntlet）和探索分区来展开任务，避免单线盲点。"
-description_en: "Fan out N parallel workers, drain them, and return one report. Use for /swarm, 'swarm this', or parallel coverage, races, gauntlets, and exploration."
+description: "并行多切片展开：覆盖矩阵切分、同题竞速、夹击验证与探索分区，避免单线盲点。当用户说「分头查」「并行覆盖一下」「多切片扫一遍」「赛马比一比」「swarm」时使用。同一产物要多个候选用 arena。"
+user-invocable: true
 ---
 
 # Swarm

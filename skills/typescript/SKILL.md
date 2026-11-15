@@ -1,9 +1,8 @@
 ---
 name: "typescript"
-description: "读取或编辑任何 .ts/.tsx 文件时遵循的 TypeScript 类型纪律与模式（判别联合、类型窄化、品牌类型、边界校验、避免可选字段袋等）。前端 / TS 工作流接入 dev 技能。合并自 kalandramo/pstack 的 typescript-best-practices 技能（同作者，MIT）。"
+display_name: "TypeScript 类型纪律（TypeScript）"
+description: "读或改 .ts / .tsx 时的类型纪律：判别联合、类型窄化、品牌类型、边界校验、避免可选字段袋。当用户说「TypeScript 怎么写」「加个类型」「判别联合」「类型太松」或要改 .ts / .tsx 时使用。不适用于纯视觉层面的前端问题（用 writing）。"
 user-invocable: true
-allowed-tools:
-  - Read
 ---
 
 # TypeScript best practices

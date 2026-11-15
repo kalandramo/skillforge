@@ -2,9 +2,8 @@
 name: "show-me-your-work"
 version: "1.0.0"
 display_name: "决策留痕（Show Me Your Work）"
-description: "为长任务或无人值守任务保留一份可审阅的决策日志：单个 TSV 文件，每行一条决策（what/why/evidence/result）。默认本地，需要信任时再提交。"
-description_zh: "为长任务或无人值守任务保留一份可审阅的决策日志：单个 TSV 文件，每行一条决策（what/why/evidence/result）。默认本地，需要信任时再提交。"
-description_en: "Keep a reviewable decision trail for long-running or unattended work: a TSV log with one row per decision (what, why, evidence, result). Local by default; commit it when a reviewer needs the trail to trust the result. Use for /show-me-your-work, autonomous or multi-phase runs, or work a human reviews after stepping away."
+description: "为长任务或无人值守任务保留一份可审阅的决策日志：单个 TSV 文件，每行记录 what、why、evidence、result。当用户说「记一下决策」「留个决策日志」「我事后要能审」「留个痕」「show me your work」时使用。简单任务不用记。"
+user-invocable: true
 ---
 
 # Show me your work

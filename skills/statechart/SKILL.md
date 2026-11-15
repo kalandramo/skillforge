@@ -2,9 +2,8 @@
 name: "statechart"
 version: "1.0.0"
 display_name: "状态图与形式化验证（Statechart）"
-description: "用 TLA+ 风格画状态图并对运行结果做形式化检查/可视化。自带 TypeScript 工程（scripts/），需要 Node 环境运行。"
-description_zh: "用 TLA+ 风格画状态图并对运行结果做形式化检查/可视化。自带 TypeScript 工程（scripts/），需要 Node 环境运行。"
-description_en: "Check a TLA+ model of a system that moves between states, such as a product flow, a protocol, or a service, and draw it as a Mermaid statechart. The report gives the shortest path to each state that breaks a rule. Use for /statechart, or to show a bug as a path through states."
+description: "用 TLA+ 写规格并渲染状态图，对运行结果做形式化检查与可视化，自带 TS 工程，需 Node 与联网装 TLC。当用户说「画状态图」「这个流程有哪些状态」「状态机对不对」「形式化验证一下」「TLA+」时使用。随手画个草图不需要它。"
+user-invocable: true
 ---
 
 # Statechart

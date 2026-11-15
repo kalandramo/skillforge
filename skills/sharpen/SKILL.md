@@ -2,9 +2,8 @@
 name: "sharpen"
 version: "1.0.0"
 display_name: "深化任务（Sharpen）"
-description: "把任务做深而不是做大，再重写提示词：想顶尖专家会做什么、从什么原始材料入手、用什么方法工具、靠什么（非你非我）来验证结果对。"
-description_zh: "把任务做深而不是做大，再重写提示词：想顶尖专家会做什么、从什么原始材料入手、用什么方法工具、靠什么（非你非我）来验证结果对。"
-description_en: "Make a task deeper, not bigger, then rewrite the prompt. Use for /sharpen."
+description: "把任务做深而不是做大，再重写提示词：想顶尖专家会做什么、从什么原始材料入手、用什么方法工具、靠什么外部证据验证结果。当用户说「这任务怎么做得更深」「重写我的提示词」「专家会怎么做」「sharpen」时使用。任务已经清晰时不必用。"
+user-invocable: true
 ---
 
 I want a deeper version of this task, not a bigger one. Before rewriting it, do four things:

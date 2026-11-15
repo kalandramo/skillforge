@@ -1,12 +1,8 @@
 ---
 name: figure-it-out
-description: "当任务没有更窄的剧本适用时，自己设计一个可审计的工作流：按任务规模伸缩严格度、跑科学方法假设循环、留下人能事后审计的决策轨迹。适用于 /figure-it-out 或「没有现成剧本，自己编排一下」。改编并合并自 kalandramo/pstack 的 figure-it-out 技能（同作者，MIT）。"
+display_name: "临场编排（Figure It Out）"
+description: "没有现成剧本时自己设计一套可审计的工作流：按任务规模伸缩严格度、跑假设循环、留下能事后审计的决策轨迹。当用户说「没有现成流程」「自己编排一下」「figure it out」「你看着办但要能查」时使用。已有更窄技能时优先用那个。"
 user-invocable: true
-allowed-tools:
-  - Bash(git:*)
-  - Bash(bash:*)
-  - Read
-  - Write
 ---
 
 # Figure it out — 临场编排剧本

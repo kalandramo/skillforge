@@ -1,6 +1,7 @@
 ---
 name: refactor
-description: "Expert code refactoring based on Martin Fowler's catalog — improve maintainability without changing behavior. Covers code smells, composing methods, moving features, organizing data, simplifying conditionals, method calls, and generalization. Triggers on: refactor, 重构, clean up, improve code, code smell, extract method, rename, simplify."
+display_name: "重构（Refactor）"
+description: "按 Fowler 手法目录做行为不变的重构：识别坏味道、提取方法、搬移特性、简化条件与调用、泛化。当用户说「重构一下」「这段代码太乱」「提取个方法」「改清楚点」「refactor」时使用。不适用于要改外部行为的改造（用 dev）。"
 user-invocable: true
 ---
 

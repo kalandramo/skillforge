@@ -2,9 +2,8 @@
 name: "reflect"
 version: "1.0.0"
 display_name: "复盘沉淀（Reflect）"
-description: "把一段长任务的经验沉淀成新技能或可复用教训；多个评审角色（分歧/判断/综合/工具）协同产出。"
-description_zh: "把一段长任务的经验沉淀成新技能或可复用教训；多个评审角色（分歧/判断/综合/工具）协同产出。"
-description_en: "Spawn three parallel review subagents over the active transcript, surface learnings, and route each to a concrete edit on an existing skill. Use when the user says reflect."
+description: "把一段长任务的经验沉淀成可复用的教训或新技能，多个评审角色（分歧、判断、综合、工具）协同产出。当用户说「复盘一下」「总结经验」「沉淀成技能」「这次学到什么」「reflect」时使用。短任务不需要。"
+user-invocable: true
 ---
 
 # Reflect

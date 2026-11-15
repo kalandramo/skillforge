@@ -1,14 +1,8 @@
 ---
 name: loop
-description: "迭代账本与判定引擎：记录每轮指标、按 epsilon 判定 keep/revert、执行回滚、账本不变量审计、按确定性规则决定是否停止（含震荡检测）。被 dev 等编排技能调用，也可单独用于任何「改一版→量一次→决定留不留」的场景。不负责跑验证（build/test/bench 由 go-gate 或其他门禁提供），不负责写业务代码。适用于用户说「把这几轮的指标记下来」「判断这版要不要回滚」「循环什么时候该停」。不适用于一次性任务（无需循环）与纯代码审查（用 dev 阶段5）。"
+display_name: "迭代账本（Loop）"
+description: "迭代账本与判定引擎：记录每轮指标、按 epsilon 判 keep 或 revert、执行回滚、账本不变量审计、基准漂移检测与确定性停止条件（含震荡检测）。当用户说「把这几轮指标记下来」「这版要不要回滚」「循环什么时候该停」「基线是多少」时使用。不负责跑验证（build/test/bench 交给 go-gate），也不写业务代码。"
 user-invocable: true
-allowed-tools:
-  - Bash(git:*)
-  - Bash(bash:*)
-  - Bash(grep:*)
-  - Bash(cksum:*)
-  - Read
-  - Write
 ---
 
 # loop — 迭代账本与判定引擎

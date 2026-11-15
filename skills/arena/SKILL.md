@@ -2,9 +2,8 @@
 name: "arena"
 version: "1.0.0"
 display_name: "多方案竞技（Arena）"
-description: "就同一任务并行派出 N 个候选，选一个作基版，再把落败者最强的部分嫁接进基版。用于不确定形态的非平凡产物。"
-description_zh: "就同一任务并行派出 N 个候选，选一个作基版，再把落败者最强的部分嫁接进基版。用于不确定形态的非平凡产物。"
-description_en: "Spawn N parallel candidates at the same task, pick a base, graft the strongest parts of the losers into it. Use for /arena, 'arena this', 'throw it in the arena', or when one attempt at a non-trivial artifact would lock in the wrong shape."
+description: "同一任务并行做多个候选方案，选一个作基版，再把落败者最强的部分嫁接进来。当用户说「多做几版比比」「几个方案挑一个」「并行试几种做法」「arena」时使用。方案已定、只需执行时用 dev。"
+user-invocable: true
 ---
 
 # Arena

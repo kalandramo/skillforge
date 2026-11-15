@@ -1,6 +1,8 @@
 ---
 name: modern-go
-description: Modernize Go code by applying version-appropriate idioms and APIs (gofix-style transformations). Scans go.mod for the Go version, then transforms Go source files to use modern patterns—from Go 1.0 through 1.26+. Use when the user says "现代化","现代Go语言", "地道的", "idiomatic",  "modernize", "modern-go", "update Go code", "gofix", or wants to upgrade Go idioms.
+display_name: "现代 Go 写法（Modern Go）"
+description: "把 Go 代码改成与 go.mod 版本相称的现代写法，涵盖从 1.0 到 1.27 的 46 条规则，配索引脚本按版本切片加载。当用户说「现代化这段 Go」「更地道的写法」「modernize」「update Go code」「gofix」时使用。不适用于要改外部行为的重写（用 refactor）。"
+user-invocable: true
 ---
 
 # modern-go

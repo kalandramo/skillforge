@@ -1,12 +1,8 @@
 ---
 name: go-gate
-description: "Go 项目的确定性质量门禁：go build / go vet / go test / go test -race / golangci-lint（仅检查基线后新增问题）/ benchmark（多次取中位数）/ go.mod 依赖守卫，输出 JSON 与退出码供编排层消费。触发：go-gate、跑门禁、Go 质量检查、验证 Go 改动、bench 对比、性能有没有变差。"
+display_name: "Go 质量门禁（Go Gate）"
+description: "Go 项目的确定性质量门禁：mod_guard、build、vet、test、race、lint（只查基线后新增问题）与 bench（多次取中位数），输出 JSON 与退出码。当用户说「跑门禁」「Go 质量检查」「验证这个 Go 改动」「bench 对比」「性能有没有变差」时使用。非 Go 项目不适用。"
 user-invocable: true
-allowed-tools:
-  - Bash(go:*)
-  - Bash(git:*)
-  - Bash(golangci-lint:*)
-  - Bash(bash:*)
 ---
 
 # go-gate — Go 质量门禁

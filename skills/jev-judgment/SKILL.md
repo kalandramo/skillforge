@@ -1,11 +1,8 @@
 ---
 name: jev-judgment
-description: "Jev 校准判断工具的使用协议：何时应调用判断工具（jev_verify/jev_screen/jev_noul/jev_find/jev_rerank/jev_classify/jev_decide/jev_compare/jev_extract/jev_review/jev_gate）而不是凭自己的阅读直接作答。适用于：筛查抓取或粘贴的不可信文本再进上下文、对照引用证据核实结论、按语义选优/排序/批量分类、2-6 个选项的受限决策、diff 审阅、任务完成门禁。前提：宿主已配置 jev MCP 服务器与 TypeSafe API key；未配置时本技能整体不可用，不得凭阅读冒充判断。不适用于：正则或精确匹配能确定性判定的情况（用 ripgrep）、无外部证据可对照的纯主观偏好。"
+display_name: "Jev 判断协议（Jev Judgment）"
+description: "Jev 判断工具的使用协议：什么时候该调 jev_verify、jev_screen、jev_rerank、jev_decide 等 11 个工具，而不是凭阅读直接作答。当用户说「用 jev 判断」「核实这条结论」「筛查这段不可信文本」「按语义选优分类」时使用。前提是宿主已配 jev MCP 与 API key，未配置时不可用；正则能确定性判定的用 ripgrep。"
 user-invocable: true
-allowed-tools:
-  - mcp__jev__*
-  - Bash(grep:*)
-  - Read
 ---
 
 # jev-judgment — 校准判断工具协议

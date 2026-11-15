@@ -1,17 +1,8 @@
 ---
 name: dev
-description: "统一开发入口：一条需求进来，自动完成判据制定、按需设计、切片、实现、Go 门禁、独立子代理审阅、度量判定与收尾，内层循环迭代 N 轮直到验收标准满足或性能指标达标；产物停在分支等人工评审。适用于用户说「dev」「一条龙做完」「端到端实现这个需求」「自动实现并循环 N 次」「把这个接口性能压到 X 以内」，以及 TypeScript / 前端任务（类型纪律由 typescript 技能提供）。不适用于批量多任务（用 loop-it）与并行任务（用 graph）。"
+display_name: "开发闭环（Dev）"
+description: "统一开发入口：一条需求进来，自动走完判据、按需设计、切片、实现、门禁、独立子代理审阅与判定收尾，内层循环迭代到验收标准满足。当用户说「dev」「一条龙做完」「端到端实现这个需求」「做个功能」「实现这个接口」「把这个性能压到 X 以内」时使用。不适用于只审不改（用 interrogate）、多方案竞技（用 arena）、多切片并行（用 swarm）。"
 user-invocable: true
-allowed-tools:
-  - Bash(git:*)
-  - Bash(go:*)
-  - Bash(gh:*)
-  - Bash(bash:*)
-  - Bash(grep:*)
-  - Bash(mkdir:*)
-  - Read
-  - Write
-  - Edit
 ---
 
 # dev — 单一入口的受控开发循环

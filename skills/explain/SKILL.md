@@ -1,12 +1,8 @@
 ---
 name: explain
-description: "讲解与沟通技能集：用大白话说清楚（bro）、复述用户目标确认理解（in-your-own-words）、代码走查讲解运行机理（how）、追溯代码背后的设计动机与权衡（why）、把工作编织成一份易懂讲解（teach）。适用于「讲清楚这个」「帮我真正理解 X」「这段代码为什么这么写」「改之前先走查一下」。合并自 kalandramo/pstack 的 bro、in-your-own-words、how、why、teach 五个技能（同作者，MIT）。"
+display_name: "讲解与走查（Explain）"
+description: "讲解与沟通：用大白话说清概念、走查代码讲运行机理、追溯设计动机与权衡、把一段工作编织成易懂的讲解。当用户说「讲清楚这个」「帮我真正理解」「这段代码怎么跑的」「为什么这么写」「走查一下」「给新人讲讲」时使用。不适用于写文档或改文案（用 writing）。"
 user-invocable: true
-allowed-tools:
-  - Read
-  - Bash(git:*)
-  - Bash(gh:*)
-  - Agent
 ---
 
 # Explain — 讲解与沟通

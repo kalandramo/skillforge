@@ -1,6 +1,7 @@
 ---
 name: principles
-description: "工程原则参考集：把 24 条可复用的工程原则（设计/实现/验证/重构/并发/执行）按主题聚合，供 dev / loop / go-gate / refactor 等技能在需要时引用。改编并合并自 kalandramo/pstack 的 principle-* 技能集合（同作者，MIT）。"
+display_name: "工程原则（Principles）"
+description: "24 条可复用工程原则的参考集，分设计、实现、验证、重构、并发、执行六类，供 dev、loop、go-gate、refactor 在相应阶段按名引用。当用户问「有哪些工程原则」「这条原则怎么说」，或其它技能需要在阶段内引用时读取。不单独承担任务。"
 user-invocable: true
 ---
 

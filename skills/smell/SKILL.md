@@ -1,6 +1,7 @@
 ---
 name: smell
-description: "Detect software architecture bad smells, algorithmic complexity hotspots, and anti-patterns in a codebase. Produces a detailed markdown report identifying violations of architectural principles, design patterns, code quality, and performance complexity. Triggers on: smell, code smell, architecture smell, find anti-patterns, detect bad smells, complexity analysis, 代码坏味道, 架构坏味道, 反模式, 找出坏味道, 复杂度分析."
+display_name: "坏味道诊断（Smell）"
+description: "扫描架构坏味道、算法复杂度热点与反模式，产出一份按严重度排序的 Markdown 报告。当用户说「闻一下这代码」「有什么坏味道」「架构哪里不对」「找找反模式」「复杂度分析」时使用。只诊断不改代码，要动手改走 refactor。"
 user-invocable: true
 ---
 

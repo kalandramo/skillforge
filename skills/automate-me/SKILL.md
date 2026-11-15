@@ -2,9 +2,8 @@
 name: "automate-me"
 version: "1.0.0"
 display_name: "个性化技能（Automate Me）"
-description: "把用户的工作习惯与偏好提炼成一个专属 -mode 技能（如 jay-mode）。编排挖掘、skill-creator（WorkBuddy 内有 skill-creator 技能）与本仓库的 writing 技能（Unslop 纪律）三步。合并自 kalandramo/pstack 的 automate-me 技能（同作者，MIT）。"
-description_zh: "把用户的工作习惯与偏好提炼成一个专属 -mode 技能（如 jay-mode）。编排挖掘、skill-creator（WorkBuddy 内有 skill-creator 技能）与 unslop 三步。"
-description_en: "Use for \\\"automate me\\\", \\\"create/update/refresh my -mode skill\\\", \\\"turn/capture my preferences or working style into a skill\\\", or wanting agents to follow how the user works. Drafts or revises a personal -mode skill via create-skill + unslop, optionally pulling fresh evidence from recent transcripts."
+description: "把用户的工作习惯与偏好提炼成一个专属 -mode 技能（例如 jay-mode），编排历史挖掘、技能创作与去 AI 味三步。当用户说「把我习惯固化下来」「做个我的工作模式」「automate me」「生成我的 mode」时使用。一次性的小偏好不值得这么做。"
+user-invocable: true
 ---
 
 # Automate me

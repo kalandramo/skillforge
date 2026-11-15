@@ -2,9 +2,8 @@
 name: "interrogate"
 version: "1.0.0"
 display_name: "对抗评审（Interrogate）"
-description: "多模型对抗审查改动或设计，只有被一次运行证明的发现有价值；只报告发现，不自己改代码。"
-description_zh: "多模型对抗审查改动或设计，只有被一次运行证明的发现有价值；只报告发现，不自己改代码。"
-description_en: "Use for \\\"interrogate\\\", \\\"adversarial review\\\", \\\"multi-model review\\\", \\\"challenge this\\\", \\\"stress test this code\\\", \\\"find blind spots\\\", or \\\"tear this apart\\\". Adversaries try to break a change or design, and only findings proven by a run survive."
+description: "多模型对抗审查改动或设计，每条发现必须有一次运行证明，只报告发现，不动手改代码。当用户说「对抗审查一下」「挑挑这改动的毛病」「找找漏洞」「interrogate」时使用。需要顺便修掉时走 dev 的阶段 5。"
+user-invocable: true
 ---
 
 # Interrogate
