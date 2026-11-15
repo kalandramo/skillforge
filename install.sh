@@ -17,11 +17,25 @@ set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$REPO/skills"
+RETIRED="$REPO/retired.txt"
 MODE="link"
 ACTION="install"
+PRUNE=0
 TARGETS=()
 
 die() { echo "ERROR: $*" >&2; exit 1; }
+
+# retired.txt 里"已退役"的名字，一行一个，`#` 后为注释。
+# 用 while read 而不是 for 循环，避免中文注释里的空格被当成字段分隔。
+retired_names() {
+  [ -f "$RETIRED" ] || return 0
+  local line name
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%%#*}"
+    name="$(printf '%s' "$line" | tr -d '[:space:]')"
+    [ -n "$name" ] && printf '%s\n' "$name"
+  done < "$RETIRED"
+}
 
 usage() {
   cat <<'EOF'
@@ -32,6 +46,8 @@ usage() {
                    ~/.qoder/skills、~/.qoder-cn/skills
   --link           优先符号链接（默认）
   --copy           强制复制
+  --prune          顺带清理宿主目录里已退役技能的旧副本（清单见 retired.txt）
+                   只移入备份目录，不删除；可用 SKILLFORGE_BACKUP 指定落点
   --check          只检查已安装版本是否落后于本仓库，不做改动
   -h, --help       显示本帮助
 
@@ -45,6 +61,7 @@ while [ $# -gt 0 ]; do
     --target) [ -n "${2:-}" ] || die "--target 需要参数"; TARGETS+=("$2"); shift ;;
     --copy)   MODE="copy" ;;
     --link)   MODE="link" ;;
+    --prune)  PRUNE=1 ;;
     --check)  ACTION="check" ;;
     -h|--help) usage ;;
     *) die "未知参数: $1" ;;
@@ -97,6 +114,16 @@ if [ "$ACTION" = "check" ]; then
         drift=1
       fi
     done
+    # 已退役技能的残留：不算"没装好"，但会与新技能争抢触发，值得提示
+    while IFS= read -r rname; do
+      [ -n "$rname" ] || continue
+      if [ -e "$target/$rname" ] || [ -L "$target/$rname" ]; then
+        printf '  [old]   %s — 已退役技能的残留副本，可用 install.sh --prune 清理\n' "$rname"
+        drift=1
+      fi
+    done <<RETIRED_EOF
+$(retired_names)
+RETIRED_EOF
   done
   [ "$drift" -eq 0 ] && echo && echo "全部已同步" || { echo; echo "存在未同步项，运行不带 --check 的 install.sh 同步"; exit 1; }
   exit 0
@@ -112,11 +139,39 @@ write_marker() {
   } > "$dst/.skillforge-origin"
 }
 
-ok=0; skipped=0; failed=0
+ok=0; skipped=0; failed=0; pruned=0
 
 for target in "${TARGETS[@]}"; do
   mkdir -p "$target" || { echo "  [FAIL] 无法创建 $target" >&2; failed=$((failed+1)); continue; }
   echo "==> $target"
+
+  # 退役技能残留清理：移入备份目录而不是删除，回退成本最低。
+  # 仓库里仍存在的同名目录一律跳过——防止把刚加回仓库的技能误清掉。
+  if [ "$PRUNE" -eq 1 ]; then
+    # 备份目录名带上父目录：三家技能目录都叫 skills，只取 basename 会在同一秒内撞名
+    prune_parent="$(basename "$(dirname "$target")")"
+    prune_parent="${prune_parent#.}"
+    backup_root="${SKILLFORGE_BACKUP:-$HOME/.skillforge-backup}/${prune_parent}-$(basename "$target")-pruned-$(date '+%Y%m%d-%H%M%S')"
+    while IFS= read -r rname; do
+      [ -n "$rname" ] || continue
+      [ -d "$SRC_DIR/$rname" ] && continue
+      [ -e "$target/$rname" ] || [ -L "$target/$rname" ] || continue
+      if [ ! -d "$backup_root" ]; then
+        mkdir -p "$backup_root" || { echo "  [WARN] 无法创建备份目录 $backup_root" >&2; break; }
+      fi
+      if mv "$target/$rname" "$backup_root/$rname" 2>/dev/null; then
+        echo "  [prune] $rname → $backup_root"
+        pruned=$((pruned+1))
+      else
+        echo "  [WARN] 无法移走 $rname，请手工处理" >&2
+      fi
+    done <<RETIRED_EOF
+$(retired_names)
+RETIRED_EOF
+    if [ "$pruned" -gt 0 ]; then
+      echo "  （退役副本已备份，需要时从上面目录取回）"
+    fi
+  fi
 
   for src in "$SRC_DIR"/*/; do
     src="${src%/}"
@@ -172,6 +227,8 @@ for target in "${TARGETS[@]}"; do
 done
 
 echo
-printf '完成：挂载 %s，跳过 %s，失败 %s（rev %s）\n' "$ok" "$skipped" "$failed" "$REPO_REV"
+printf '完成：挂载 %s，跳过 %s，失败 %s' "$ok" "$skipped" "$failed"
+[ "$PRUNE" -eq 1 ] && printf '，清理退役 %s' "$pruned"
+printf '（rev %s）\n' "$REPO_REV"
 [ "$failed" -eq 0 ] || exit 1
 echo "提示：技能列表在会话启动时加载，新挂载的技能需新开会话才可见。"

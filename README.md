@@ -130,6 +130,17 @@ bash install.sh --check
 .\install.ps1 -Check
 ```
 
+从旧版升级时，早先单独装过、后来被合并或删除的技能会留在宿主目录里，与新技能争抢触发条件（例如旧的 `how` / `why` 与 `explain` 描述重叠）。`--prune` 会把 `retired.txt` 里列出的名字移入备份目录：
+
+```bash
+bash install.sh --prune
+```
+```powershell
+.\install.ps1 -Prune
+```
+
+只搬不删，落点 `~/.skillforge-backup/<父目录>-skills-pruned-<时间戳>/`，需要时原样取回。仓库 `skills/` 下仍存在的同名技能一律不动——把一个技能加回仓库后，清单里的旧条目不会误伤它。
+
 **装完需新开会话**，技能列表在会话启动时加载。
 
 > Windows 上不必强求 Junction：`install.sh` 在无开发者模式时会退化为复制，功能完全正常，只是改完仓库要再跑一次脚本。`install.ps1` 用 Junction 避免这一步。

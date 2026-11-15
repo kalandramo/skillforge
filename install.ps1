@@ -21,6 +21,10 @@
 .PARAMETER Check
   只检查已安装版本是否落后于本仓库，不做改动。
 
+.PARAMETER Prune
+  顺带清理宿主目录里已退役技能的旧副本（名单见 retired.txt）。
+  只移动到 %USERPROFILE%\.skillforge-backup 下，不删除。
+
 .EXAMPLE
   .\install.ps1
   .\install.ps1 -Target "$env:USERPROFILE\.workbuddy\skills" -Check
@@ -30,7 +34,8 @@
 param(
     [string[]]$Target = @(),
     [switch]$Copy,
-    [switch]$Check
+    [switch]$Check,
+    [switch]$Prune
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,6 +65,22 @@ function Remove-LinkOnly {
     [System.IO.Directory]::Delete($Path, $false)
 }
 
+function Get-RetiredNames {
+    # 读 retired.txt 的"名字"列，`#` 之后是注释。
+    # 用 .NET 显式按 UTF-8 读，避免 PS 5.1 的 Get-Content 按 ANSI 解码中文。
+    $path = Join-Path $Repo 'retired.txt'
+    if (-not (Test-Path -LiteralPath $path)) { return @() }
+    $names = @()
+    foreach ($line in [System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8)) {
+        $text = $line
+        $hash = $text.IndexOf('#')
+        if ($hash -ge 0) { $text = $text.Substring(0, $hash) }
+        $text = $text.Trim()
+        if ($text) { $names += $text }
+    }
+    return $names
+}
+
 if (-not (Test-Path -LiteralPath $SrcDir)) { throw "未找到 $SrcDir" }
 $RepoRev = Get-RepoRev
 
@@ -81,6 +102,7 @@ if ($Target.Count -eq 0) {
 }
 
 $skills = Get-ChildItem -LiteralPath $SrcDir -Directory
+$retiredNames = Get-RetiredNames
 
 # ------------------------------------------------------------------ Check
 if ($Check) {
@@ -112,6 +134,12 @@ if ($Check) {
                 $drift = $true
             }
         }
+        foreach ($rn in $retiredNames) {
+            if (Test-Path -LiteralPath (Join-Path $t $rn)) {
+                Write-Host "  [old]   $rn — 已退役技能的残留副本，可用 -Prune 清理"
+                $drift = $true
+            }
+        }
     }
     Write-Host ("-" * 60)
     if ($drift) {
@@ -123,13 +151,37 @@ if ($Check) {
 }
 
 # ------------------------------------------------------------------ Install
-$ok = 0; $skipped = 0; $failed = 0
+$ok = 0; $skipped = 0; $failed = 0; $pruned = 0
 
 foreach ($t in $Target) {
     if (-not (Test-Path -LiteralPath $t)) {
         New-Item -ItemType Directory -Path $t -Force | Out-Null
     }
     Write-Host "==> $t"
+
+    # 退役技能残留清理：移入备份目录而不是删除。
+    # 备份名带上父目录——三家技能目录都叫 skills，只取 Leaf 会撞名。
+    if ($Prune) {
+        $leaf = Split-Path -Leaf $t
+        $parent = (Split-Path -Leaf (Split-Path -Parent $t)).TrimStart('.')
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $backupRoot = Join-Path (Join-Path $env:USERPROFILE '.skillforge-backup') "$parent-$leaf-pruned-$stamp"
+        foreach ($rn in $retiredNames) {
+            if (Test-Path -LiteralPath (Join-Path $SrcDir $rn)) { continue }
+            $oldPath = Join-Path $t $rn
+            if (-not (Test-Path -LiteralPath $oldPath)) { continue }
+            if (-not (Test-Path -LiteralPath $backupRoot)) {
+                New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+            }
+            try {
+                Move-Item -LiteralPath $oldPath -Destination (Join-Path $backupRoot $rn) -Force
+                Write-Host "  [prune] $rn → $backupRoot"
+                $pruned++
+            } catch {
+                Write-Host "  [WARN] 无法移走 $rn ：$_" -ForegroundColor Yellow
+            }
+        }
+    }
 
     foreach ($s in $skills) {
         $dst = Join-Path $t $s.Name
@@ -180,6 +232,8 @@ foreach ($t in $Target) {
 }
 
 Write-Host ("-" * 60)
-Write-Host "完成：挂载 $ok，跳过 $skipped，失败 $failed（rev $RepoRev）"
+$summary = "完成：挂载 $ok，跳过 $skipped，失败 $failed"
+if ($Prune) { $summary += "，清理退役 $pruned" }
+Write-Host "$summary（rev $RepoRev）"
 if ($failed -gt 0) { exit 1 }
 Write-Host "提示：技能列表在会话启动时加载，新挂载的技能需新开会话才可见。"

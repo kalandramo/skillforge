@@ -1,0 +1,18 @@
+# 已退役的技能名 —— 供 install.sh --prune 使用
+#
+# 只写"曾经是本仓库的技能、现在已不存在"的名字，一行一个。`#` 后为注释。
+# 作用：升级时把宿主技能目录里这些旧副本移走，避免旧技能与新技能争抢触发。
+# 安全前提：安装时若仓库 skills/ 下仍存在同名目录，则跳过不处理——
+#           因此把一个技能加回本仓库后，这里的残留条目不会误伤它。
+#
+# 迁移去向（便于回溯）：
+how                          # 已并入 explain
+why                          # 已并入 explain
+architect                    # 已并入 dev
+unslop                       # 已并入 writing
+deslop                       # 已并入 writing
+impeccable                   # 已并入 writing
+tdd                          # 已并入 principles（sequence-verifiable-units）
+create-skill                 # 由 skill-creator 承担
+principle-fix-root-causes    # 已并入 principles
+principle-prove-it-works     # 已并入 principles
