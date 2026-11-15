@@ -75,9 +75,9 @@ if [ "$ACTION" = "check" ]; then
         if [ -f "$marker" ]; then
           installed="$(sed -n 's/^rev=//p' "$marker" | head -1)"
           if [ "$installed" = "$REPO_REV" ]; then
-            echo "  [ ok ]  $name — 已同步 ($REPO_REV)"
+            printf '  [ ok ]  %s — 已同步 (%s)\n' "$name" "$REPO_REV"
           else
-            echo "  [stale] $name — 已安装 ${installed:-?}，仓库 $REPO_REV，需重跑 install"
+            printf '  [stale] %s — 已安装 %s，仓库 %s，需重跑 install\n' "$name" "${installed:-?}" "$REPO_REV"
             drift=1
           fi
         else
@@ -123,7 +123,7 @@ for target in "${TARGETS[@]}"; do
         rm -rf "$dst"   # 本脚本此前复制的产物，可安全替换
       else
         echo "  [skip] $name — 已存在且非本脚本安装，不覆盖"
-        echo "         如需接管：mv \"$dst\" \"$dst.bak\" 后重跑"
+        printf '         如需接管：mv "%s" "%s.bak" 后重跑\n' "$dst" "$dst"
         skipped=$((skipped+1))
         continue
       fi
@@ -164,6 +164,6 @@ for target in "${TARGETS[@]}"; do
 done
 
 echo
-echo "完成：挂载 $ok，跳过 $skipped，失败 $failed（rev $REPO_REV）"
+printf '完成：挂载 %s，跳过 %s，失败 %s（rev %s）\n' "$ok" "$skipped" "$failed" "$REPO_REV"
 [ "$failed" -eq 0 ] || exit 1
 echo "提示：技能列表在会话启动时加载，新挂载的技能需新开会话才可见。"
