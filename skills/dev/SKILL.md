@@ -25,13 +25,13 @@ dev（本技能，内层循环）
   ├─ 阶段1 设计     → 内联产出设计要点，存 tasks/（不依赖外部 prd 类技能）
   ├─ 阶段2 切片     → 内联做纵向切片，产出写入 .dev/tasks/（不强制建 Issue）
   ├─ 阶段3 实现     → modern-go 索引（仅 .go，只读索引命中再抽单节）；typescript 纪律（仅 .ts/.tsx）
-  ├─ 阶段4 门禁     → go-gate（验证与指标的唯一来源）
+  ├─ 阶段4 门禁     → go-gate（Go）/ ts-gate（TS、JS），按改动语言择一，是验证与指标的唯一来源
   ├─ 阶段5 审阅     → 独立子代理读 diff + refactor 手法（仅结构性 blocking）
   ├─ 阶段6 判定     → loop（epsilon 比较、keep/revert、停止条件）
   └─ 阶段7 收尾     → 默认停在分支；用户明确要求时才推送或开 PR
 ```
 
-三者职责严格分离，任何一种都不能替代另一种：`go-gate` 回答"这版对不对"，`loop` 回答"这版要不要留、还继续吗"，`dev` 回答"接下来做什么"。判据与验证分离后，换语言只需替换 `go-gate`，判定逻辑不动。
+三者职责严格分离，任何一种都不能替代另一种：`go-gate` 回答"这版对不对"，`loop` 回答"这版要不要留、还继续吗"，`dev` 回答"接下来做什么"。判据与验证分离后，加一门语言只需照着同一份契约再写一个门禁脚本（`ts-gate` 就是这么来的），判定逻辑不动。
 
 上游 goal-workflow 的 `review-it` 依赖宿主内置的 `/review` 类命令，WorkBuddy / ZCode / Qoder 都没有，所以本仓库没有收录它。本技能因此内置"自包含审阅"（阶段 5）：派独立子代理读 diff，不依赖任何外部命令。
 
@@ -102,7 +102,7 @@ dev（本技能，内层循环）
 ```
 需求：<一句话>
 验收：C1 <...> → <verify>；C2 ...
-门禁：go-gate（race=<是/否>, bench=<pattern 或 关闭>）
+门禁：go-gate | ts-gate（race=<是/否>, bench=<pattern 或 关闭>）
 循环：N=5 轮，指标 <name> 方向 <lower/higher> 基线 <值或"未度量">
 出口：dev/<slug> 分支，不推送不合并
 ```
@@ -184,13 +184,18 @@ bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --section <起始行
 
 ### 4. 门禁
 
-```bash
-bash <plugin_root>/skills/go-gate/scripts/gate.sh --root <repo> --json [--race] [--bench='^BenchmarkX$']
-```
+按本轮改动的语言选门禁，**不要两种都跑**——另一语言的门禁会全量扫描无关代码，既慢又引入噪声：
 
-- `ok=false` → 读 `log_dir/<stage>.log` 尾部，回到 3b 修复。**不得通过修改或删除测试来变绿。**
+| 项目类型 | 命令 |
+|---|---|
+| Go（有 `go.mod`） | `bash <plugin_root>/skills/go-gate/scripts/gate.sh --root <repo> --json [--race] [--bench='^BenchmarkX$']` |
+| TS/JS（有 `package.json`） | `bash <plugin_root>/skills/ts-gate/scripts/ts_gate.sh --root <repo> --json [--build]` |
+| 两者都有（monorepo） | 各跑一次；改动所在那侧必须全绿，另一侧若被波及也要跑 |
+| 都没有 | 跳过门禁，并在报告里写明"本项目无可用门禁"——**不得**用模型自评代替 |
+
+- `ok=false` → 读 `log_dir/<stage>.log` 尾部，回到 3b 修复。**不得通过修改或删除测试、加 `@ts-expect-error` / `eslint-disable` 来变绿。**
 - 连续 3 轮门禁失败 → 停止循环，报告"方向假设错误"，不要继续换参数重试。
-- 阶段 0 声明要做性能优化时，`--bench` 是强制的；否则本轮不得标记为 `perf`。
+- 阶段 0 声明要做性能优化时：Go 项目 `--bench` 是强制的；TS 项目的 `--bench` **不产出 metric**，此时本轮不得标记为 `perf`，只能标 `feature` 或 `refactor`。
 
 ### 5. 审阅（独立子代理）
 
@@ -226,7 +231,7 @@ grep -n '^### ' <plugin_root>/skills/refactor/SKILL.md    # 定位手法章节�
 # 再按行号抽那一节，约 30-80 行
 ```
 
-`refactor` 的"行为不变 + 小步 + 测试守门"原则与本循环的判定机制一致：结构改动的正确性由 `go-gate` 的测试结果证明，而不是由审阅者声称"改完更清晰了"。
+`refactor` 的"行为不变 + 小步 + 测试守门"原则与本循环的判定机制一致：结构改动的正确性由门禁（`go-gate` / `ts-gate`）的测试结果证明，而不是由审阅者声称"改完更清晰了"。
 
 ### 6. 判定与结算
 
@@ -295,7 +300,7 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 |---|---|
 | 起始工作树不干净 | 停止，请用户 stash 或提交；不得在脏树上开始 |
 | 起始门禁就失败 | 先修复到全绿再进入 round 1，作为 `round 0` 记录，不占 `rounds_max` |
-| go-gate 返回 rc=2 | 环境问题（无 go / 非 Go 模块），停止并报告 |
+| 门禁返回 rc=2 | 环境问题（无 go / 非 Go 模块 / 无 package.json），停止并报告 |
 | benchmark 抖动导致判定摇摆 | 提高 `BENCH_RUNS` 到 7；不要降低 epsilon 来"稳定"结论 |
 | `loop` 报告基准漂移（drift 警告） | 停止比较新旧指标。有意变更基准 → `loop drift --set` 或重记 `baseline` 开新段；否则恢复基准。**改基准后继续比数字等于造假** |
 | `loop keep`/`record` 被账本审计拒绝 | 审计输出说明账本与本轮矛盾（如 perf 轮 keep 未改善、轮次倒退）。修正本轮判定流程，不要绕过审计；历史行不得手工改写 |
@@ -327,6 +332,7 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 ├── smell.md          存量诊断报告（可选，仅阶段 0.5；后续轮次读它而非重读源码）
 ├── tasks/<id>.md     切片（可选）
 ├── gate/<ts>/        每轮门禁日志（由 go-gate 写入）
+├── ts-gate/<ts>/     同上，TS/JS 项目（由 ts-gate 写入）
 └── REPORT.md         人读报告
 dev/<slug> 分支       N 个（或更少）round commit
 ```
