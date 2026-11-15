@@ -85,6 +85,7 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 | 弄懂一段代码 | 这段代码怎么跑的 / 讲清楚这个 / 为什么这么写 | `explain` |
 | 写文档或提交信息 | 写 README / 写 PR 描述 / 写提交信息 / 去 AI 味 | `writing` |
 | 定设计方向 / 判断这版好不好 | 这个设计好不好 / 配色 / 帮我改稿 / 设计方向怎么定 | `writing`（§4） |
+| 照截图复刻一个界面 / 验收 | 照这个截图复刻 / 按参考图做一版 / 界面验收 | `writing`（§4） |
 | 几个方案挑一个 | 多做几版比比 / 几个方案挑一个 / 并行试几种做法 | `arena` |
 | 分头并行地查 | 分头查 / 并行覆盖一下 / 多切片扫一遍 | `swarm` |
 | 事后复盘沉淀 | 复盘一下 / 总结经验 / 沉淀成技能 | `reflect` |
@@ -152,7 +153,7 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 | [`jev-judgment`](skills/jev-judgment/SKILL.md) | 见文件 | 按需：筛查不可信文本、对照证据核实、语义选优/分类、完成门禁 | 全量读；**需宿主配置 jev MCP + TypeSafe API key**，未配置时不可用 |
 | [`principles`](skills/principles/SKILL.md) | ~100 | dev/loop/go-gate/refactor/writing 在相应阶段引用 | 按需读（参考型，非单独触发）；由 pstack 的 24 条 principle-* 合并而来，另新增 2 条 |
 | [`figure-it-out`](skills/figure-it-out/SKILL.md) | ~90 | 无更窄剧本时的通用兜底编排（/figure-it-out） | 全量读；改编并合并自 pstack 的 figure-it-out |
-| [`writing`](skills/writing/SKILL.md) | ~310 | 写 / 审文档、PR 描述、提交信息；润色去 AI 味；前端 UI 收尾闸门；设计方向与改稿判断（§4） | 全量读；由 pstack 的 technical-writing + unslop + impeccable 合并而来，另加设计判断一节（源自 Duoasa-skill） |
+| [`writing`](skills/writing/SKILL.md) | ~345 | 写 / 审文档、PR 描述、提交信息；润色去 AI 味；前端 UI 收尾闸门；设计方向判断、照稿复刻、界面验收（§4） | 全量读；由 pstack 的 technical-writing + unslop + impeccable 合并而来，另加设计判断一节（源自 Duoasa-skill 与 DSH-to-Figma） |
 | [`explain`](skills/explain/SKILL.md) | ~200 | 讲解 / 走查代码（how）、追溯设计动机（why）、大白话传授（teach）、复述目标 | 全量读；由 pstack 的 bro + in-your-own-words + how + why + teach 合并而来 |
 | [`statechart`](skills/statechart/SKILL.md) | 见文件 + scripts/ | 用 TLA+ 画状态图并对运行结果做形式化检查 / 可视化 | 全量读；自带 TypeScript 工程（scripts/），需 Node |
 | [`automate-me`](skills/automate-me/SKILL.md) | 见文件 | 把用户工作习惯提炼成专属 -mode 技能 | 全量读；改编并合并自 pstack 的 automate-me |
@@ -351,6 +352,21 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 - 把其中可命名的两条抽成 `principles` 条目（`label-the-provenance`、`no-soft-praise`），供其它技能按名引用
 
 未采纳的部分：上游 README 主张"把时间投在基础设施而非短流程 skill"——那是给工具作者的路线建议，不是给模型的行为约束，搬进来只会变成空话。
+
+### DSH-to-Figma
+
+[Duoasa/DSH-to-Figma](https://github.com/Duoasa/DSH-to-Figma)（MIT，© 2026 Duoasa）是 DSH 原生插件：注册 43 个本地工具，经 `127.0.0.1:3055` 的 HTTP 长轮询队列驱动一个 Figma 配套插件，在 Figma Desktop 的沙箱里执行 Plugin API 读写画布。**代码没有收编，也不建议这么做**：
+
+- 它不是技能，是工具。本仓库是 markdown + bash 的方法集、靠符号链接挂载；这个是 184 个文件的 Node 插件，peer 依赖 `@deepseek-ai/cordis`，只有 DSH 能加载，WorkBuddy / ZCode / Qoder 都不认它的注册协议。
+- 它自带的 `skills/figma-workbench`（40 行 + 17 个 reference）是那 43 个工具的说明书，不是独立方法论。单独挂进来等于让助手去调 43 个不存在的工具——比「悬空技能名」严重得多。
+- 桥接协议本身是干净的（`/connect`、`/poll`、`/result` 的 HTTP 队列），理论上可以包成 MCP server 给三家客户端用，但要自己承担 session/workspace 重映射、`.figma/` 工作目录、companion 打包与全套测试；上游在快速迭代（featureVersion 已到 7），fork 必然漂移。
+
+只吸收了与宿主无关的两块方法，写进 `writing` §4 第 5–6 条：
+
+- **复刻保真档位**——快速草稿 / 均衡复刻 / 精细复刻，开头确认一次，任何档位都必须真看一眼产物，不承诺百分比保真
+- **UI 验收六类**（排版 / 间距 / 颜色 / 素材 / 文案 / 交互）+ 单独写明验证边界，未验的不并进「通过」
+
+真要用 Figma 时：读设计稿直连官方 Dev Mode MCP（`http://127.0.0.1:3845/mcp`，只读，配进客户端 MCP 配置即可）；写画布只能走 DSH 插件本体。
 
 ## License
 
