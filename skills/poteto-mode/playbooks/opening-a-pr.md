@@ -6,7 +6,7 @@ Invoked at the end of every other playbook.
 
 **Commits.** Commit liberally. Rebase into small, ordered commits before opening PRs. Each commit is a future PR: landable, ordered to tell the story. Amend when the fix belongs in a just-made commit. New commit when separable. Commit bodies don't restate the subject.
 
-**PRs.** Run `**writing** skill (unslop section)` from `cursor-team-kit（Cursor 插件；WorkBuddy 替代：用 workbuddy-browser-use 技能控制 UI/CLI，用 unslop 替代 deslop）` over the diff before commit and `/refactor` before review. Write every PR title, description, and commit body with `/writing` (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply `/writing`.
+**PRs.** Run `**writing** skill (unslop section)` from `cursor-team-kit（Cursor 插件；WorkBuddy 用 workbuddy-browser-use 替代）` over the diff before commit and `/refactor` before review. Write every PR title, description, and commit body with `/writing` (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply `/writing`.
 
 **Titles.** Conventional Commits `type(scope): subject`, no trailing period. Type such as `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `perf`. Scope is the area, such as `pstack` or `poteto-mode`. Subject is short, imperative, and names a real symbol when one carries the change, for example `fix(pstack): retarget opening-a-pr babysit trigger`.
 

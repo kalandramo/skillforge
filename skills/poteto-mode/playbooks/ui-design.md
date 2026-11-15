@@ -1,11 +1,11 @@
 ### UI design / frontend polish
 
-**You own the visual direction. Generate or review, then verify the surface is not AI slop.** This playbook is the UI-layer counterpart to `unslop`. It leans on the `impeccable` skill as a deterministic gate.
+**You own the visual direction. Generate or review, then verify the surface is not AI slop.** 本剧本是 **writing** 技能 Unslop 章节在 UI 层的对应。 它以 **writing** 技能的 Impeccable 章节（`npx impeccable`）作为确定性闸门。
 
-1. Clarify the surface: what page/component, what audience, what the page must communicate. Do **not** over-specify visual style — impeccable handles the "don't" list; intent handles the "do".
+1. Clarify the surface: what page/component, what audience, what the page must communicate. Do **not** over-specify visual style — `npx impeccable` 检测器负责 "don't" 清单; intent handles the "do".
 2. `how` over the existing UI subsystem (framework, component library, design tokens) before generating.
 3. Generate or review the surface. Keep changes surgical and re-ground against source for upstream-derived files.
-4. Gate with the `impeccable` skill — run the deterministic detector:
+4. 用 **writing** 技能 Impeccable 章节的确定性检测器：
    ```bash
    export DO_NOT_TRACK=1   # avoid the anonymous telemetry record
    npx impeccable detect <path|dir|url>

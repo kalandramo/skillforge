@@ -37,7 +37,7 @@
 | [`interrogate`](skills/interrogate/SKILL.md) | 见文件 | 多模型对抗审查改动 / 设计，只报告发现不自行改 | 全量读；改编自 pstack 的 interrogate |
 | [`reflect`](skills/reflect/SKILL.md) | 见文件 | 把长任务经验沉淀成新技能 / 可复用教训，多评审角色协同 | 全量读；改编自 pstack 的 reflect |
 | [`show-me-your-work`](skills/show-me-your-work/SKILL.md) | 见文件 | 长任务 / 无人值守决策留痕（TSV：what/why/evidence/result） | 全量读；改编自 pstack 的 show-me-your-work |
-| [`poteto-mode`](skills/poteto-mode/SKILL.md) | 见文件 + scripts/ | 总路由元技能：按任务类型自动选剧本并编排子代理；agent 风格与触发规范 | 全量读；改编自 pstack 的 poteto-mode，自带 TypeScript 工程（scripts/）与 23 个 playbook |
+| [`poteto-mode`](skills/poteto-mode/SKILL.md) | 见文件 + scripts/ | 总路由元技能：按任务类型自动选剧本并编排子代理；agent 风格与触发规范 | 全量读；改编自 pstack 的 poteto-mode，自带 TypeScript 工程（scripts/）与 24 个 playbook |
 
 前三者合计约 2600 行 / 35k tokens。**任何一轮循环都不整份加载**——读进去却只用上一条规则，等于把后续轮次的上下文预算提前烧掉。这是 `dev` 里"上下文预算"一节的来源。`jev-judgment` 是例外：它没有规则库，只有一份使用协议，且依赖外部服务（宿主未配置 jev MCP 时整体不触发）。`writing` / `explain` / `statechart` / `automate-me` / `typescript` 为沟通与写作类技能；`arena` / `swarm` / `interrogate` / `reflect` / `show-me-your-work` / `sharpen` 为并行探索与评审类技能。二者均不参与 `dev` 内层循环，按用户显式触发或 `dev` 阶段 3 的 TS 分支加载。`poteto-mode` 是元路由：按任务自动选剧本并编排上述技能，自身不干活。
 
@@ -171,7 +171,7 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 
 另有五组技能同样合并自 pstack（同作者，MIT），把原分散的独立技能聚合成单篇、并解开对 pstack 其它技能（poteto-mode 等）的硬依赖：`writing`（technical-writing + unslop + impeccable 合并，覆盖文档规范 / 去 AI 味 / 前端 UI 去 AI 味）、`explain`（bro + in-your-own-words + how + why + teach 合并，覆盖讲解 / 走查 / 动机追溯 / 传授，子代理模型选择改为宿主配置驱动）、`automate-me`（提炼专属 -mode 技能，unslop 引用改为指向本仓库 `writing`）、`typescript`（TS 类型纪律，原 `type-system-discipline` / `boundary-discipline` 原则引用改为指向本仓库 `principles`）、`statechart`（TLA+ 状态图形式化验证，原样迁入并保留自带 TypeScript 工程）。`typescript` 已接入 `dev` 阶段 3 的 `.ts`/`.tsx` 实现分支。
 
-另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 23 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。其中 `poteto-mode` 已是 WorkBuddy 优先的移植版，仅更新了已删技能（`architect`/`tdd`/`no-comments`/`blast-radius`/`benchmark-checklist`）与 `principle-*` 的指向。
+另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 24 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。其中 `poteto-mode` 已是 WorkBuddy 优先的移植版：各 playbook 中对 `architect`（→ `dev` 设计阶段）、`unslop`/`deslop`/`impeccable`（→ `writing` 的 Unslop / Impeccable 章节）、`principle-*`（→ `principles` 对应条目）的引用已统一改写为本仓库技能，`control-ui`/`control-cli` 等 Cursor 专有控制技能标注用 `workbuddy-browser-use` 替代，并清理了迁移时的批量替换残渣。
 
 ## License
 
