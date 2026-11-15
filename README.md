@@ -87,6 +87,16 @@ ruby -ryaml -e 'Dir.glob("skills/*/SKILL.md").each { |f| YAML.safe_load(File.rea
 
 ## 安装
 
+只支持三个客户端：**WorkBuddy**、**ZCode**、**Qoder**。技能目录与插件清单各按三家自己的约定放置：
+
+| 客户端 | 用户级技能目录 | 项目级技能目录 | 插件清单 |
+|---|---|---|---|
+| WorkBuddy | `~/.workbuddy/skills/` | `.workbuddy/skills/` | `.workbuddy-plugin/plugin.json` |
+| ZCode | `~/.zcode/skills/` | `.zcode/skills/` | `.zcode-plugin/plugin.json` |
+| Qoder | `~/.qoder-cn/skills/`（国际版 `~/.qoder/skills/`） | `.qoder/skills/` | `.qoder-plugin/plugin.json` |
+
+挂载脚本是主要安装方式；三份插件清单供按插件形式分发时用，字段各自贴合三家的清单格式。
+
 需要 **bash**（macOS/Linux 自带；Windows 用 Git Bash 或 WSL）：
 
 ```bash
@@ -109,7 +119,7 @@ git clone https://github.com/kalandramo/skillforge.git "$env:USERPROFILE\code\sk
 | Windows + Git Bash | `install.sh` | 符号链接（需开发者模式），失败则复制 | 复制模式下需重跑脚本 |
 | Windows + PowerShell | `install.ps1` | 目录联接 Junction（免管理员） | 自动生效 |
 
-两个脚本都挂到 `~/.workbuddy/skills/` 与 `~/.claude/skills/`（存在的那些）。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
+两个脚本都挂到已存在的下列目录，装了几个客户端就挂几个：`~/.workbuddy/skills/`（WorkBuddy）、`~/.zcode/skills/`（ZCode）、`~/.qoder-cn/skills/`（Qoder 中国版）或 `~/.qoder/skills/`（Qoder 国际版）。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
 
 检查本地安装是否落后于仓库：
 
@@ -189,9 +199,9 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 
 `principles` 与 `figure-it-out` 改编并合并自作者本人的 [`kalandramo/pstack`](https://github.com/kalandramo/pstack) 技能集合（同作者，MIT）。`principles` 把原 24 条独立的 `principle-*` 技能聚合为单篇参考（避免 24 个技能同时占表面积），供 dev/loop/go-gate/refactor 在相应阶段按名引用；`figure-it-out` 是去掉对 pstack 其它技能（poteto-mode / architect / show-me-your-work）依赖后的通用兜底编排剧本，跨引用改为指向本仓库的 `principles` 与 `loop`。
 
-另有五组技能同样合并自 pstack（同作者，MIT），把原分散的独立技能聚合成单篇、并解开对 pstack 其它技能（poteto-mode 等）的硬依赖：`writing`（technical-writing + unslop + impeccable 合并，覆盖文档规范 / 去 AI 味 / 前端 UI 去 AI 味）、`explain`（bro + in-your-own-words + how + why + teach 合并，覆盖讲解 / 走查 / 动机追溯 / 传授，子代理模型选择改为宿主配置驱动）、`automate-me`（提炼专属 -mode 技能，unslop 引用改为指向本仓库 `writing`）、`typescript`（TS 类型纪律，原 `type-system-discipline` / `boundary-discipline` 原则引用改为指向本仓库 `principles`）、`statechart`（TLA+ 状态图形式化验证，原样迁入并保留自带 TypeScript 工程）。`typescript` 已接入 `dev` 阶段 3 的 `.ts`/`.tsx` 实现分支。
+另有五组技能同样合并自 pstack（同作者，MIT），把原分散的独立技能聚合成单篇、并解开对 pstack 其它技能（poteto-mode 等）的硬依赖：`writing`（technical-writing + unslop + impeccable 合并，覆盖文档规范 / 去 AI 味 / 前端 UI 去 AI 味）、`explain`（bro + in-your-own-words + how + why + teach 合并，覆盖讲解 / 走查 / 动机追溯 / 传授，子代理模型改为由宿主自动选定）、`automate-me`（提炼专属 -mode 技能，unslop 引用改为指向本仓库 `writing`）、`typescript`（TS 类型纪律，原 `type-system-discipline` / `boundary-discipline` 原则引用改为指向本仓库 `principles`）、`statechart`（TLA+ 状态图形式化验证，原样迁入并保留自带 TypeScript 工程）。`typescript` 已接入 `dev` 阶段 3 的 `.ts`/`.tsx` 实现分支。
 
-另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 24 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。其中 `poteto-mode` 已是 WorkBuddy 优先的移植版：各 playbook 中对 `architect`（→ `dev` 设计阶段）、`unslop`/`deslop`/`impeccable`（→ `writing` 的 Unslop / Impeccable 章节）、`principle-*`（→ `principles` 对应条目）的引用已统一改写为本仓库技能，`control-ui`/`control-cli` 等 Cursor 专有控制技能标注用 `workbuddy-browser-use` 替代，并清理了迁移时的批量替换残渣。
+另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 24 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。这批内容原为 pstack 的 Cursor 版，收编时按三客户端重写：各 playbook 中对 `architect`（→ `dev` 设计阶段）、`unslop`/`deslop`/`impeccable`（→ `writing` 的 Unslop / Impeccable 章节）、`principle-*`（→ `principles` 对应条目）的引用已统一改写为本仓库技能；模型选择一律交给宿主自动选型（删掉了 `~/.cursor/rules/pstack-models.mdc` 这类配置文件与 `claude-opus-5-5-xhigh` / `grok-4.7-xhigh-fast` 这类硬编码 slug）；Cursor 专有的 cloud agent、`control-cli`/`control-ui`、`create-skill` 等引用改为三家各自可行的替代（浏览器自动化、`skill-creator`、Agent Skills 格式）；子代理工具名按 WorkBuddy `Agent` / ZCode 与 Qoder `Task` 区分。
 
 ## License
 

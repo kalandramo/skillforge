@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# install.sh — 把本仓库的 skills/* 挂载到宿主的技能目录
+# install.sh — 把本仓库的 skills/* 挂载到宿主技能目录
+#
+# 支持的宿主只有三个：WorkBuddy、ZCode、Qoder。各自的技能目录：
+#   WorkBuddy  ~/.workbuddy/skills
+#   ZCode      ~/.zcode/skills
+#   Qoder      ~/.qoder/skills（国际版）或 ~/.qoder-cn/skills（中国版）
 #
 # 为什么需要它：技能靠"目录出现在宿主扫描路径下"生效。手工复制会在上游改动后
 # 悄悄失同步，所以优先用符号链接。Windows 下 ln -s 常因权限失败（需开发者模式），
@@ -22,7 +27,9 @@ usage() {
   cat <<'EOF'
 用法: install.sh [选项]
 
-  --target <dir>   指定技能目录（可多次；默认自动探测 ~/.workbuddy/skills 与 ~/.claude/skills）
+  --target <dir>   指定技能目录（可多次）
+                   缺省自动探测已存在的 ~/.workbuddy/skills、~/.zcode/skills、
+                   ~/.qoder/skills、~/.qoder-cn/skills
   --link           优先符号链接（默认）
   --copy           强制复制
   --check          只检查已安装版本是否落后于本仓库，不做改动
@@ -49,7 +56,8 @@ done
 REPO_REV="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  for d in "$HOME/.workbuddy/skills" "$HOME/.claude/skills"; do
+  for d in "$HOME/.workbuddy/skills" "$HOME/.zcode/skills" \
+           "$HOME/.qoder/skills" "$HOME/.qoder-cn/skills"; do
     [ -d "$d" ] && TARGETS+=("$d")
   done
   if [ ${#TARGETS[@]} -eq 0 ]; then

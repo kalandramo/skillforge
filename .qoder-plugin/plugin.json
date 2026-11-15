@@ -1,0 +1,48 @@
+{
+  "name": "skillforge",
+  "displayName": "Skillforge",
+  "version": "0.1.0",
+  "description": "面向 AI 辅助开发的技能集：单一 /dev 入口、确定性的 Go 质量门禁、与语言无关的迭代账本，共 21 个技能。",
+  "author": {
+    "name": "Murphy"
+  },
+  "homepage": "https://github.com/kalandramo/skillforge",
+  "repository": "https://github.com/kalandramo/skillforge",
+  "license": "MIT",
+  "keywords": [
+    "qoder-plugin",
+    "skills",
+    "workflow",
+    "go",
+    "quality-gate",
+    "iteration",
+    "benchmark"
+  ],
+  "category": "Coding",
+  "tags": [
+    "skills",
+    "workflow",
+    "go",
+    "quality-gate"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skillforge",
+    "shortDescription": "Deterministic dev workflow skills with exit-code verdicts",
+    "longDescription": "Skillforge bundles 21 skills for AI-assisted development. Three of them form the flow layer: dev answers what to do next, go-gate answers whether this version is correct through build/vet/test/race/lint/bench exit codes, and loop answers whether the version is worth keeping through a metric ledger. The rest are capability skills loaded on demand.",
+    "developerName": "Murphy",
+    "category": "coding",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "用 dev 走完这个需求",
+      "跑一下 Go 门禁",
+      "开一个 loop 记指标"
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}

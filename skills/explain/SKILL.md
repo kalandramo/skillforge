@@ -33,7 +33,7 @@ user-invocable: true
 
 探索代码库回答 "how does X work?"。产出 senior 工程师上手一个子系统时的架构讲解——足够建立可用的心智模型，又不至于读起来像带注释的源码。
 
-每个派出的 explorer / explainer 都是一个子代理（Cursor 用 `Task`、Claude Code 用 `Agent`、OpenCode 用 `task`、Codex 用 `spawn_agent`）。explorer 用 `readonly: true`，explainer 默认 `grok-4.7-xhigh-fast` / `claude-opus-5-5-xhigh`（取你宿主模型配置里的对应行，缺省则用默认）。每个子代理的推理档位与快慢按任务自定。若你的子代理工具拒绝某个 slug，用默认并说明；默认也被拒，就用它报错信息里同族最接近的合法 slug。若宿主没有子代理工具，就自己依次跑每个角色。
+每个派出的 explorer / explainer 都是一个子代理（WorkBuddy 用 `Agent`，ZCode / Qoder 用 `Task`）。explorer 用 `readonly: true`，explainer 用宿主的默认模型，任务最难时上调一档。三个宿主都自动选型，没有模型配置文件可读。每个子代理的推理档位与快慢按任务自定。若工具拒绝某个 slug，用宿主默认并说明。若宿主没有子代理工具，就自己依次跑每个角色。
 
 ### 1. 评估复杂度
 
@@ -66,9 +66,9 @@ user-invocable: true
 
 调查代码背后的动机与意图。配套技能 **How（§3）** 回答代码做什么、怎么运作；**Why** 回答什么力量塑造了它的形态。
 
-每个派出的 investigator / synthesizer 都是 `generalPurpose` 子代理（`readonly: false`，agent 模式）。**不要用 readonly / Ask 模式**——它会剥掉 MCP 访问，使 MCP 支撑的 investigator 与 synthesizer 的引用核查失效。investigator 仍不应写出任何东西。
+每个派出的 investigator / synthesizer 都是 `general-purpose` 子代理（`readonly: false`，agent 模式）。**不要用 readonly / Ask 模式**——它会剥掉 MCP 访问，使 MCP 支撑的 investigator 与 synthesizer 的引用核查失效。investigator 仍不应写出任何东西。
 
-每个子代理的模型取你宿主模型配置里的对应行（如 `~/.cursor/rules/pstack-models.mdc` in Cursor、`~/.claude/rules/pstack-models.md` in Claude Code、`~/.agents/pstack-models.md` in other harnesses），缺省则用默认；值为 `auto` 或 `inherit-parent` 时把 `model` 留空。若工具拒绝某 slug，用默认并说明。
+每个子代理的模型由宿主自动选定：explainer / synthesizer 用最强判断档，investigator 用默认档。宿主若暴露 `model` 参数就照此设，否则留空。若工具拒绝某 slug，用默认并说明。
 
 ### 操作姿态
 
@@ -95,7 +95,7 @@ user-invocable: true
 
 **默认走完整并发调查**，目标是完整覆盖图而非最小覆盖。证伪也要记录，不跳过搜索。
 
-**发现**：派 investigator 前，列出宿主连上的 MCP 服务器（Claude Code 里工具名通常形如 `mcp__<server>__<tool>`）。把每个可用 MCP 映射到一类证据：
+**发现**：派 investigator 前，列出宿主连上的 MCP 服务器（接入 MCP 的宿主里工具名通常形如 `mcp__<server>__<tool>`）。把每个可用 MCP 映射到一类证据：
 
 1. 源码历史（source control）
 2. 问题 / ticket 追踪
@@ -107,7 +107,7 @@ user-invocable: true
 
 源码历史永远通过 git 与 `gh` 可用。其余六类按 MCP 名、服务器说明、工具名、资源描述归类；一个 MCP 能归多类时取其主要证据类。模棱两可的记进覆盖图。
 
-每类有匹配 MCP 就派一个 investigator，全部在一条消息里并发，每个独占一个工具 / MCP。不要令一个 agent 覆盖多个 MCP。`model`：取你宿主配置里的对应行，默认 `grok-4.7-xhigh-fast`。
+每类有匹配 MCP 就派一个 investigator，全部在一条消息里并发，每个独占一个工具 / MCP。不要令一个 agent 覆盖多个 MCP。`model`：留空，由宿主自动选定。
 
 每个 investigator 的 prompt 是 `references/investigator-prompt.md` 填好，外加：
 
@@ -134,7 +134,7 @@ user-invocable: true
 
 ### 步骤 4. 综合
 
-派一个 synthesizer（`model` 取对应行，默认 `claude-opus-5-5-xhigh`），给它：
+派一个 synthesizer（`model` 留空，由宿主选最强判断档），给它：
 
 1. investigator 的发现（含 null 结果与带理由跳过的类）
 2. 代码锚点

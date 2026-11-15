@@ -1,7 +1,7 @@
 {
   "name": "skillforge",
   "version": "0.1.0",
-  "description": "Personal skill collection for AI-assisted development: a single /dev entry, a deterministic Go quality gate, and a language-agnostic iteration ledger.",
+  "description": "面向 AI 辅助开发的个人技能集：单一 /dev 入口、确定性的 Go 质量门禁、与语言无关的迭代账本。共 21 个技能，判定靠脚本退出码而非模型自述。",
   "author": {
     "name": "Murphy",
     "url": "https://github.com/kalandramo"
@@ -17,27 +17,31 @@
     "iteration",
     "benchmark"
   ],
+  "category": "开发工具",
   "skills": [
+    "./skills/arena",
     "./skills/automate-me",
     "./skills/dev",
     "./skills/explain",
     "./skills/figure-it-out",
     "./skills/go-gate",
+    "./skills/interrogate",
     "./skills/jev-judgment",
     "./skills/loop",
     "./skills/modern-go",
+    "./skills/poteto-mode",
     "./skills/principles",
     "./skills/refactor",
+    "./skills/reflect",
+    "./skills/sharpen",
+    "./skills/show-me-your-work",
     "./skills/smell",
     "./skills/statechart",
+    "./skills/swarm",
     "./skills/typescript",
-    "./skills/writing",
-    "./skills/arena",
-    "./skills/interrogate",
-    "./skills/poteto-mode",
-    "./skills/reflect",
-    "./skills/show-me-your-work",
-    "./skills/sharpen",
-    "./skills/swarm"
-  ]
+    "./skills/writing"
+  ],
+  "commands": [],
+  "agents": [],
+  "hooks": ""
 }

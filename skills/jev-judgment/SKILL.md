@@ -60,7 +60,7 @@ user-invocable: true
 
 ## 环境准备
 
-宿主 MCP 配置中加入（ZCode 用插件设置填 key；其他宿主如 Claude Code / WorkBuddy 直接写 `mcp.json`）：
+宿主 MCP 配置中加入（WorkBuddy 写 `~/.workbuddy/mcp.json`；ZCode 写 `~/.zcode/cli/config.json` 或用插件设置填 key；Qoder 用设置里的 MCP 面板）：
 
 ```json
 {

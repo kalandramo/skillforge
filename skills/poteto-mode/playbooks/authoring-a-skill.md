@@ -2,7 +2,7 @@
 
 **You own the skill's voice.**
 
-1. Use your skill-authoring skill: the **skill-creator** skill in WorkBuddy or Claude, **create-skill** in Cursor (built in). With neither, follow the Agent Skills format at agentskills.io.
+1. Use your skill-authoring skill: the **skill-creator** skill where the host ships one, otherwise follow the Agent Skills format at agentskills.io.
 2. Validate the skill: frontmatter has `name` and `description`, referenced files exist, cross-skill links resolve.
 3. Test cases if structural. Skip if subjective.
 4. Run **Opening a PR**.

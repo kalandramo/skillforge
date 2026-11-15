@@ -69,14 +69,14 @@ elif raw=$(gh pr list --author "@me" --state all --limit 1000 \
 fi
 [ -s "$prs" ] || echo "[]" > "$prs"
 
-# Chat transcript dirs for a path, per harness: Cursor, Claude Code, Pi.
-# Codex and OpenCode don't group sessions by project, so they aren't searched.
-slash_slug() { printf '%s' "$1" | sed 's#^/##; s#/#-#g'; }
-claude_slug() { printf '%s' "$1" | sed 's#[^A-Za-z0-9]#-#g'; }
+# Chat transcript dirs for a path, per host: WorkBuddy and Qoder group sessions by
+# workspace. ZCode keeps them in a local database, so it isn't searched.
+wb_slug() { printf '%s' "$1" | sed 's#^/##; s#[^A-Za-z0-9]#-#g'; }
+qoder_slug() { printf '%s' "$1" | sed 's#[^A-Za-z0-9]#-#g'; }
 transcript_dirs() {
-	for d in "$HOME/.cursor/projects/$(slash_slug "$1")/agent-transcripts" \
-		"$HOME/.claude/projects/$(claude_slug "$1")" \
-		"$HOME/.pi/agent/sessions/--$(slash_slug "$1")--"; do
+	for d in "$HOME/.workbuddy/projects/$(wb_slug "$1")" \
+		"$HOME/.qoder-cn/projects/$(qoder_slug "$1")" \
+		"$HOME/.qoder/projects/$(qoder_slug "$1")"; do
 		[ -d "$d" ] && printf '%s\n' "$d"
 	done
 }

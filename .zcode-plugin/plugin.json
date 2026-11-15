@@ -1,0 +1,24 @@
+{
+  "name": "skillforge",
+  "description": "A skill collection for AI-assisted development: one /dev entry point, a deterministic Go quality gate, and a language-agnostic iteration ledger. Every workflow skill ships a script that returns an exit code, so verdicts come from a process instead of the model's self-report.",
+  "description_i18n": {
+    "en": "A skill collection for AI-assisted development: one /dev entry point, a deterministic Go quality gate, and a language-agnostic iteration ledger.",
+    "zh-CN": "面向 AI 辅助开发的技能集：单一 /dev 入口、确定性的 Go 质量门禁、与语言无关的迭代账本，共 21 个技能。"
+  },
+  "version": "0.1.0",
+  "author": {
+    "name": "Murphy"
+  },
+  "homepage": "https://github.com/kalandramo/skillforge",
+  "repository": "https://github.com/kalandramo/skillforge",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "go",
+    "quality-gate",
+    "iteration",
+    "benchmark"
+  ],
+  "category": "开发工具"
+}

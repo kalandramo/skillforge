@@ -41,7 +41,7 @@ If the user doesn't specify, default to option A for small projects (< 100 files
 
 ## Step 2: Evidence Gathering
 
-**Use the Explore subagent** (`Agent` with `subagent_type: "Explore"`) to scan the codebase for architectural patterns and anti-patterns. Run multiple parallel explorations:
+**Use an Explore subagent** (WorkBuddy: `Agent` with `subagent_type: "Explore"`; ZCode and Qoder: `Task` with a read-only explorer) to scan the codebase for architectural patterns and anti-patterns. Run multiple parallel explorations:
 
 ### Exploration Commands
 

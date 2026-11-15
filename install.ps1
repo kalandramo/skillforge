@@ -12,7 +12,8 @@
   处理链接，绝不递归删除 Junction。
 
 .PARAMETER Target
-  指定技能目录，可多个。默认自动探测 ~\.workbuddy\skills 与 ~\.claude\skills。
+  指定技能目录，可多个。默认自动探测已存在的 ~\.workbuddy\skills、
+  ~\.zcode\skills、~\.qoder\skills、~\.qoder-cn\skills。
 
 .PARAMETER Copy
   强制复制而非 Junction（不支持链接的极端环境用；改动需重跑）。
@@ -65,7 +66,9 @@ $RepoRev = Get-RepoRev
 if ($Target.Count -eq 0) {
     $candidates = @(
         (Join-Path $env:USERPROFILE '.workbuddy\skills'),
-        (Join-Path $env:USERPROFILE '.claude\skills')
+        (Join-Path $env:USERPROFILE '.zcode\skills'),
+        (Join-Path $env:USERPROFILE '.qoder\skills'),
+        (Join-Path $env:USERPROFILE '.qoder-cn\skills')
     )
     foreach ($c in $candidates) {
         if (Test-Path -LiteralPath $c) { $Target += $c }
