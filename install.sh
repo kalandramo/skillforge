@@ -154,7 +154,7 @@ for target in "${TARGETS[@]}"; do
     fi
     if cp -r "$src" "$dst"; then
       write_marker "$dst"
-      echo "  [copy] $name（改动后需重跑本脚本）"
+      echo "  [copy] ${name}（改动后需重跑本脚本）"
       ok=$((ok+1))
     else
       echo "  [FAIL] $name 复制失败" >&2

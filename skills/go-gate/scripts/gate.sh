@@ -168,7 +168,7 @@ if [ "$BENCH" -eq 1 ] && ! skipped bench; then
     fi
     v=$(echo "$out" | grep -Eo '[0-9.]+ ns/op' | head -1 | grep -Eo '[0-9.]+')
     if [ -z "$v" ]; then
-      echo "  [FAIL] bench 未匹配到 ns/op（pattern=$BENCH_PATTERN）"; bench_ok=0; break
+      echo "  [FAIL] bench 未匹配到 ns/op（pattern=${BENCH_PATTERN}）"; bench_ok=0; break
     fi
     echo "  bench run $i/$BENCH_RUNS: $v ns/op"
     vals="$vals$v"$'\n'
