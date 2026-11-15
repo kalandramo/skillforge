@@ -4,7 +4,7 @@
 
 不是又一个 prompt 集合——每个技能都配套一个**能返回退出码的脚本**，判定不靠模型自述。
 
-## 七个技能，两层
+## 九个技能，两层
 
 **流程层** 决定做什么、做到什么程度，三个脚本各有唯一职责：
 
@@ -24,6 +24,8 @@
 | [`refactor`](skills/refactor/SKILL.md) | 716 | `dev` 阶段 5，结构性 blocking 或 `refactor` 轮次 | `grep '^### '` 定位手法，抽一节 |
 | [`smell`](skills/smell/SKILL.md) | 750 | `dev` 阶段 0.5（仅存量改造），每需求最多 1 次 | 全量读一次，报告落地后即卸载 |
 | [`jev-judgment`](skills/jev-judgment/SKILL.md) | 见文件 | 按需：筛查不可信文本、对照证据核实、语义选优/分类、完成门禁 | 全量读；**需宿主配置 jev MCP + TypeSafe API key**，未配置时不可用 |
+| [`principles`](skills/principles/SKILL.md) | ~95 | dev/loop/go-gate/refactor 在相应阶段引用 | 按需读（参考型，非单独触发）；由 pstack 的 24 条 principle-* 合并而来 |
+| [`figure-it-out`](skills/figure-it-out/SKILL.md) | ~90 | 无更窄剧本时的通用兜底编排（/figure-it-out） | 全量读；改编并合并自 pstack 的 figure-it-out |
 
 前三者合计约 2600 行 / 35k tokens。**任何一轮循环都不整份加载**——读进去却只用上一条规则，等于把后续轮次的上下文预算提前烧掉。这是 `dev` 里"上下文预算"一节的来源。`jev-judgment` 是例外：它没有规则库，只有一份使用协议，且依赖外部服务（宿主未配置 jev MCP 时整体不触发）。
 
@@ -134,7 +136,7 @@ skills/<name>/
 
 - 上游的 `review-it` 依赖宿主内置 `/review`、`codex review`，在无这些命令的环境不可用 → 本仓库改为 `dev` 阶段 5 的自包含子代理审阅
 - 上游的判定分散在提示词里 → 本仓库抽成 `loop` 脚本，停止条件有确定性输出
-- 上游 23 个技能同时启用会让上下文在第一步就吃紧 → 本仓库只收录 Go 后端链路真正用得上的六个，其余留在上游
+- 上游 23 个技能同时启用会让上下文在第一步就吃紧 → 本仓库只收录 Go 后端链路真正用得上的九个，其余留在上游
 - `modern-go` 原样搬入会一次吃掉 15k tokens → 本仓库配了 `modern_index.sh` 做版本切片，按需加载单节
 
 `modern-go`、`refactor`、`smell` 原文来自上游，本仓库只对 `modern-go` 增加了索引脚本与开头使用说明，规则内容未改动。
@@ -152,6 +154,8 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 `loop` 的账本不变量审计、ASI 记忆（假设/下一步/弃用理由）、基准漂移检测、震荡检测与迭代钩子借鉴了 [karpathy/autoresearch](https://github.com/karpathy/autoresearch) 思路的 zcode 官方 `autoresearch` 插件，按本仓库「零依赖 bash + 退出码判定」原则重写进 `loop.sh`——未引入其 MCP server、宿主 hooks 与 dashboard，护栏智能保留，载体不搬。
 
 `jev-judgment` 改编自 zcode 官方 `jev-decisions` 插件内置技能，原文来自 [`@jkudish/jev-mcp`](https://github.com/jkudish/jev-mcp)（MIT）。宿主绑定（ZCode userConfig）换成了通用 MCP 配置说明，协议内容未改动。它是本仓库唯一依赖外部服务的技能：无脚本、无退出码，定位是"按需读取的判断工具使用协议"，与 dev/loop 的机器可读判据互不替代。
+
+`principles` 与 `figure-it-out` 改编并合并自作者本人的 [`kalandramo/pstack`](https://github.com/kalandramo/pstack) 技能集合（同作者，MIT）。`principles` 把原 24 条独立的 `principle-*` 技能聚合为单篇参考（避免 24 个技能同时占表面积），供 dev/loop/go-gate/refactor 在相应阶段按名引用；`figure-it-out` 是去掉对 pstack 其它技能（poteto-mode / architect / show-me-your-work）依赖后的通用兜底编排剧本，跨引用改为指向本仓库的 `principles` 与 `loop`。
 
 ## License
 

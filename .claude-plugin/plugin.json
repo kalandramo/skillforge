@@ -19,11 +19,13 @@
   ],
   "skills": [
     "./skills/dev",
+    "./skills/figure-it-out",
     "./skills/go-gate",
+    "./skills/jev-judgment",
     "./skills/loop",
     "./skills/modern-go",
+    "./skills/principles",
     "./skills/refactor",
-    "./skills/smell",
-    "./skills/jev-judgment"
+    "./skills/smell"
   ]
 }

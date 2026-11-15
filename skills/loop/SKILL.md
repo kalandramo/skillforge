@@ -34,6 +34,17 @@ allowed-tools:
 3. **回滚保留账本。** `revert` 用 `git reset --hard && git clean -fd -e .dev`，代码回到上一个 keep，记录一条不丢。账本被回滚掉，审计链就断了。
 4. **写入账本前过审计。** keep 必须真的改善、轮次必须连续、非 keep 行不得带 commit——违反不变量的记录被拒绝写入，而不是污染账本后再靠人眼发现。审计把"手工编辑 results.tsv 修正结论"从文档禁忌变成机器强制。
 
+## 指导原则（参考 `principles` 技能）
+
+`loop` 的判定纪律与 `principles` 技能这些条目直接对应，不重复展开：
+
+- **基准漂移 / 性能数字**：`explain-the-number`（先写决策与噪声地板，再信数字）、`prove-it-works`（核对真实产物）。
+- **每轮 keep/revert**：`sequence-verifiable-units`（单元可验证、未绿不前进）、`subtract-before-you-add`（先减后加）。
+- **审计不变量**：`test-behavior-not-implementation`（断言行为契约）、`make-operations-idempotent`（记录操作幂等、可重跑）。
+- **停止 / 震荡**：`outcome-oriented-execution`（向可验证终态收敛）。
+
+需要某条的展开说明时，读 `principles` 技能对应条目。
+
 ## 用法
 
 ```bash

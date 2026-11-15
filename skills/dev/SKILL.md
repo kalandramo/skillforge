@@ -44,7 +44,19 @@ dev（本技能，内层循环）
 
 `review-it` 依赖宿主内置的 `/review`、`codex review` 等命令，在无该命令的环境中不可用。本技能因此内置"自包含审阅"（阶段 5），不调用 `review-it`。
 
-### 上下文预算：能力层必须按需加载
+### 指导原则（参考 `principles` 技能）
+
+本技能在关键阶段默认遵循 `principles` 技能里的工程原则，不重复展开：
+
+- **阶段 0 / 规划**：`foundational-thinking`（先数据结构/脚手架）、`model-the-domain`（领域建模）、`exhaust-the-design-space`（无先例时多原型对比）。
+- **阶段 3 实现**：`subtract-before-you-add`（先删后加）、`build-the-lever`（造工具而非手工）、`minimize-reader-load`（降读者负担）。
+- **阶段 4 / 5 门禁与审阅**：`prove-it-works`（核对真实产物而非自报）、`test-behavior-not-implementation`（测行为不测实现）、`boundary-discipline`（边界校验）。
+- **阶段 6 判定**：`sequence-verifiable-units`（单元可验证）、`explain-the-number`（性能数字先解释再信）。
+- **全程**：`never-block-on-the-human`（可逆动作不阻塞）、`guard-the-context-window`（上下文预算）。
+
+需要某条的展开说明时，读 `principles` 技能对应条目。
+
+## 上下文预算：能力层必须按需加载
 
 `modern-go` 1139 行、`smell` 750 行、`refactor` 716 行，合计约 35k tokens。**任何一轮循环都不允许全量加载它们**，否则第一轮就会耗尽上下文，后续轮次只能靠猜。
 
