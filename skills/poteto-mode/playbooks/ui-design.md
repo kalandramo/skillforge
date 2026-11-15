@@ -3,7 +3,7 @@
 **You own the visual direction. Generate or review, then verify the surface is not AI slop.** 本剧本是 **writing** 技能 Unslop 章节在 UI 层的对应。 它以 **writing** 技能的 Impeccable 章节（`npx impeccable`）作为确定性闸门。
 
 1. Clarify the surface: what page/component, what audience, what the page must communicate. Do **not** over-specify visual style — `npx impeccable` 检测器负责 "don't" 清单; intent handles the "do".
-2. `how` over the existing UI subsystem (framework, component library, design tokens) before generating.
+2. Run the **explain** skill (how section) over the existing UI subsystem (framework, component library, design tokens) before generating.
 3. Generate or review the surface. Keep changes surgical and re-ground against source for upstream-derived files.
 4. 用 **writing** 技能 Impeccable 章节的确定性检测器：
    ```bash
