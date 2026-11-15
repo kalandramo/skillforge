@@ -3,7 +3,7 @@ name: "poteto-mode"
 version: "1.0.0"
 display_name: Poteto 模式（自动路由工作流）
 description: poteto 风格的简洁、详尽、子代理驱动、去 AI 味、简单代码、已验证的工作方式。作为总路由元技能，按任务类型自动选剧本（playbook）并编排子代理。用户说 poteto / 进入 poteto 模式 / 用这个风格工作 / 用 poteto 风格做时触发。
-description_zh: poteto 风格的总路由元技能：先复述目标、按需调用 explain/dev/arena/interrogate/go-gate/writing 等技能与 23 个 playbook 剧本，并用子代理并行执行。用户说 poteto / 进入 poteto 模式 / 用这个风格工作时触发。
+description_zh: poteto 风格的总路由元技能：先复述目标、按需调用 explain/dev/arena/interrogate/go-gate/writing 等技能与 24 个 playbook 剧本，并用子代理并行执行。用户说 poteto / 进入 poteto 模式 / 用这个风格工作时触发。
 description_en: poteto's agent style: concise detailed responses, deliberate subagents, unslopped prose, simple code, verified work. A meta-router that picks a playbook per task type and orchestrates subagents. Trigger when the user says poteto / enter poteto mode / work in this style / do it the poteto way.
 ---
 
