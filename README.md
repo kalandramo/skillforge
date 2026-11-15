@@ -1,6 +1,6 @@
 # skillforge
 
-给 AI 编码助手装的一套工作方法。主力场景是 Go 后端，但除 `go-gate` 以外都与语言无关。
+给 AI 编码助手装的一套工作方法。主力场景是 Go 后端。带语言绑定的只有三个：`go-gate`、`modern-go` 管 Go，`typescript` 管 `.ts`/`.tsx` 的类型纪律；其余技能与技术栈无关。
 
 装好之后**你不需要记命令，也不用背技能名**——正常说人话就行，助手会自己挑该用哪个。每个技能都配了一个能返回退出码的脚本，所以"做完没做完"由程序判定，不由模型自己声称。
 
@@ -21,6 +21,8 @@ bash ~/code/skillforge/install.sh
 ```
 
 脚本会自己找到你机器上装了的客户端（WorkBuddy / ZCode / Qoder），把 21 个技能链接进它们的技能目录。输出里出现 21 行 `[link]`（Windows 上是 `[junction]`）就是成功，不需要你做别的。若有个别技能被标成 `[skip]`，说明那个名字你已经装了别的东西，脚本不肯覆盖——先看[常见困惑](#常见困惑)。
+
+Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE\code\skillforge\install.ps1"`，其余不变，细节见[安装](#安装)。
 
 ### 第 2 步：新开一个会话
 
@@ -103,7 +105,7 @@ bash ~/code/skillforge/install.sh
 ## 常见困惑
 
 **安装时某个技能显示 `[skip]`？**
-那个名字下已经有别的东西（通常是早先装过的旧版技能），脚本默认不覆盖别人的东西。确认它确实该被替换后，把旧目录改名再重跑：`mv ~/.workbuddy/skills/interrogate ~/.workbuddy/skills/interrogate.bak`，然后重跑一次 `install.sh`。升级场景更省事的做法是直接 `bash install.sh --prune`，它会按 `retired.txt` 把已废弃的旧技能挪进备份目录。
+那个名字下已经有别的东西（通常是早先装过的旧版技能），脚本默认不覆盖别人的东西。确认它确实该被替换后，把旧目录改名再重跑：`mv ~/.workbuddy/skills/interrogate ~/.workbuddy/skills/interrogate.bak`，然后重跑一次 `install.sh`。升级场景更省事的做法是在仓库目录下跑 `bash install.sh --prune`，它会按 `retired.txt` 把已废弃的旧技能挪进备份目录。
 
 **说了话但助手没加载对应技能？**
 两种可能：一是没重开会话（技能列表在启动时才读）；二是那句话里没有触发词——触发靠模型判断，不是硬字符串匹配。直接点名最快：说「用 dev 做这个」，或输入 `/` 从列表里挑。
@@ -112,7 +114,7 @@ bash ~/code/skillforge/install.sh
 技能文档加起来几千行，但设计上**从不整份加载**：`dev` 按阶段只读当下需要的部分，`modern-go` 用一个索引脚本按 Go 版本切片，只抽命中的那一节。如果还是嫌慢，改用单点技能（`go-gate`、`explain`）替掉 `dev`。
 
 **我不写 Go，能用吗？**
-能。除了 `go-gate`，其余都是语言无关的。`dev` 里把"门禁"换成你语言对应的检查即可——流程、记账、判定逻辑都不用动。
+能。带语言绑定的只有 `go-gate`、`modern-go`（Go）和 `typescript`（`.ts`/`.tsx`），其余都是通用技能，不写 Go 自然也不会触发到那三个。`dev` 里把"门禁"换成你语言对应的检查即可——流程、记账、判定逻辑都不用动。
 
 **`jev-judgment` 一直说不可用？**
 它是唯一依赖外部服务的技能：需要宿主配置 jev MCP 服务和 `TYPESAFE_API_KEY`。没配就跳过，其余 20 个技能不受影响。
@@ -220,14 +222,7 @@ ruby -ryaml -e 'Dir.glob("skills/*/SKILL.md").each { |f| YAML.safe_load(File.rea
 
 挂载脚本是主要安装方式；三份插件清单供按插件形式分发时用（自己用不需要管它），字段各自贴合三家的清单格式。
 
-需要 **bash**（macOS/Linux 自带；Windows 用 Git Bash 或 WSL）：
-
-```bash
-git clone https://github.com/kalandramo/skillforge.git ~/code/skillforge
-bash ~/code/skillforge/install.sh
-```
-
-Windows 且只有 PowerShell 时，用等价的原生脚本（推荐，能建 Junction，改动自动同步）：
+**首次安装**就是[三分钟上手](#三分钟上手)第 1 步那两条命令（需要 bash，macOS / Linux / Git Bash 自带），这里不再重复。Windows 且只有 PowerShell 时，改用等价的原生脚本（推荐，能建 Junction，改动自动同步）：
 
 ```powershell
 git clone https://github.com/kalandramo/skillforge.git "$env:USERPROFILE\code\skillforge"
