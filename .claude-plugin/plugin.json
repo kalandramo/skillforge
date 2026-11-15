@@ -18,7 +18,9 @@
     "benchmark"
   ],
   "skills": [
+    "./skills/automate-me",
     "./skills/dev",
+    "./skills/explain",
     "./skills/figure-it-out",
     "./skills/go-gate",
     "./skills/jev-judgment",
@@ -26,6 +28,9 @@
     "./skills/modern-go",
     "./skills/principles",
     "./skills/refactor",
-    "./skills/smell"
+    "./skills/smell",
+    "./skills/statechart",
+    "./skills/typescript",
+    "./skills/writing"
   ]
 }

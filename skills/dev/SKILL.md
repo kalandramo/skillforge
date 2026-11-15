@@ -1,6 +1,6 @@
 ---
 name: dev
-description: "统一开发入口：一条需求进来，自动完成判据制定、按需设计、切片、实现、Go 门禁、独立子代理审阅、度量判定与收尾，内层循环迭代 N 轮直到验收标准满足或性能指标达标；产物停在分支等人工评审。适用于用户说「dev」「一条龙做完」「端到端实现这个需求」「自动实现并循环 N 次」「把这个接口性能压到 X 以内」。不适用于批量多任务（用 loop-it）与并行任务（用 graph）。"
+description: "统一开发入口：一条需求进来，自动完成判据制定、按需设计、切片、实现、Go 门禁、独立子代理审阅、度量判定与收尾，内层循环迭代 N 轮直到验收标准满足或性能指标达标；产物停在分支等人工评审。适用于用户说「dev」「一条龙做完」「端到端实现这个需求」「自动实现并循环 N 次」「把这个接口性能压到 X 以内」，以及 TypeScript / 前端任务（类型纪律由 typescript 技能提供）。不适用于批量多任务（用 loop-it）与并行任务（用 graph）。"
 user-invocable: true
 allowed-tools:
   - Bash(git:*)
@@ -33,7 +33,7 @@ dev（本技能，内层循环）
   ├─ 阶段0.5 诊断   → smell（仅存量模块改造，每需求最多 1 次）
   ├─ 阶段1 设计     → 按需调用 prd / to-design / prd-to-spec
   ├─ 阶段2 切片     → 按需调用 to-issues（产出直接写入 .dev/tasks/，不强制建 Issue）
-  ├─ 阶段3 实现     → modern-go 索引（只读索引，命中再抽单节）
+  ├─ 阶段3 实现     → modern-go 索引（仅 .go，只读索引命中再抽单节）；typescript 纪律（仅 .ts/.tsx）
   ├─ 阶段4 门禁     → go-gate（验证与指标的唯一来源）
   ├─ 阶段5 审阅     → 独立子代理读 diff + refactor 手法（仅结构性 blocking）
   ├─ 阶段6 判定     → loop（epsilon 比较、keep/revert、停止条件）
@@ -175,6 +175,8 @@ dev（本技能，内层循环）
 - 改动文件数 > 5 时停下来复核假设粒度，通常意味着应该退回阶段 2 切片。
 
 **涉及 `.go` 文件时，先看索引再动手**，不要把 1139 行规则整份读进来：
+
+**涉及 `.ts` / `.tsx` 文件时，先读 `typescript` 技能的类型纪律**（判别联合、品牌类型、边界校验、避免 `as` 强转等），其下的 `references/patterns.md` 有每条规则的代码示例。前端 / UI 任务落地后，用 `writing` 技能的 §3（Impeccable，`npx impeccable detect`）做最后一道去 AI 味闸门。
 
 ```bash
 bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --root <repo>

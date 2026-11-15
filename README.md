@@ -4,7 +4,7 @@
 
 不是又一个 prompt 集合——每个技能都配套一个**能返回退出码的脚本**，判定不靠模型自述。
 
-## 九个技能，两层
+## 十四个技能，两层
 
 **流程层** 决定做什么、做到什么程度，三个脚本各有唯一职责：
 
@@ -26,8 +26,13 @@
 | [`jev-judgment`](skills/jev-judgment/SKILL.md) | 见文件 | 按需：筛查不可信文本、对照证据核实、语义选优/分类、完成门禁 | 全量读；**需宿主配置 jev MCP + TypeSafe API key**，未配置时不可用 |
 | [`principles`](skills/principles/SKILL.md) | ~95 | dev/loop/go-gate/refactor 在相应阶段引用 | 按需读（参考型，非单独触发）；由 pstack 的 24 条 principle-* 合并而来 |
 | [`figure-it-out`](skills/figure-it-out/SKILL.md) | ~90 | 无更窄剧本时的通用兜底编排（/figure-it-out） | 全量读；改编并合并自 pstack 的 figure-it-out |
+| [`writing`](skills/writing/SKILL.md) | ~280 | 写 / 审文档、PR 描述、提交信息；润色去 AI 味；前端 UI 收尾闸门 | 全量读；由 pstack 的 technical-writing + unslop + impeccable 合并而来 |
+| [`explain`](skills/explain/SKILL.md) | ~200 | 讲解 / 走查代码（how）、追溯设计动机（why）、大白话传授（teach）、复述目标 | 全量读；由 pstack 的 bro + in-your-own-words + how + why + teach 合并而来 |
+| [`statechart`](skills/statechart/SKILL.md) | 见文件 + scripts/ | 用 TLA+ 画状态图并对运行结果做形式化检查 / 可视化 | 全量读；自带 TypeScript 工程（scripts/），需 Node |
+| [`automate-me`](skills/automate-me/SKILL.md) | 见文件 | 把用户工作习惯提炼成专属 -mode 技能 | 全量读；改编并合并自 pstack 的 automate-me |
+| [`typescript`](skills/typescript/SKILL.md) | 见文件 | 读 / 改 `.ts`/`.tsx` 时的类型纪律；已接入 `dev` 阶段 3 | 全量读；改编自 pstack 的 typescript-best-practices |
 
-前三者合计约 2600 行 / 35k tokens。**任何一轮循环都不整份加载**——读进去却只用上一条规则，等于把后续轮次的上下文预算提前烧掉。这是 `dev` 里"上下文预算"一节的来源。`jev-judgment` 是例外：它没有规则库，只有一份使用协议，且依赖外部服务（宿主未配置 jev MCP 时整体不触发）。
+前三者合计约 2600 行 / 35k tokens。**任何一轮循环都不整份加载**——读进去却只用上一条规则，等于把后续轮次的上下文预算提前烧掉。这是 `dev` 里"上下文预算"一节的来源。`jev-judgment` 是例外：它没有规则库，只有一份使用协议，且依赖外部服务（宿主未配置 jev MCP 时整体不触发）。`writing` / `explain` / `statechart` / `automate-me` / `typescript` 为沟通与写作类技能，不参与 `dev` 内层循环，按用户显式触发或 `dev` 阶段 3 的 TS 分支加载。
 
 ### modern-go 为什么要索引脚本
 
@@ -156,6 +161,8 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 `jev-judgment` 改编自 zcode 官方 `jev-decisions` 插件内置技能，原文来自 [`@jkudish/jev-mcp`](https://github.com/jkudish/jev-mcp)（MIT）。宿主绑定（ZCode userConfig）换成了通用 MCP 配置说明，协议内容未改动。它是本仓库唯一依赖外部服务的技能：无脚本、无退出码，定位是"按需读取的判断工具使用协议"，与 dev/loop 的机器可读判据互不替代。
 
 `principles` 与 `figure-it-out` 改编并合并自作者本人的 [`kalandramo/pstack`](https://github.com/kalandramo/pstack) 技能集合（同作者，MIT）。`principles` 把原 24 条独立的 `principle-*` 技能聚合为单篇参考（避免 24 个技能同时占表面积），供 dev/loop/go-gate/refactor 在相应阶段按名引用；`figure-it-out` 是去掉对 pstack 其它技能（poteto-mode / architect / show-me-your-work）依赖后的通用兜底编排剧本，跨引用改为指向本仓库的 `principles` 与 `loop`。
+
+另有五组技能同样合并自 pstack（同作者，MIT），把原分散的独立技能聚合成单篇、并解开对 pstack 其它技能（poteto-mode 等）的硬依赖：`writing`（technical-writing + unslop + impeccable 合并，覆盖文档规范 / 去 AI 味 / 前端 UI 去 AI 味）、`explain`（bro + in-your-own-words + how + why + teach 合并，覆盖讲解 / 走查 / 动机追溯 / 传授，子代理模型选择改为宿主配置驱动）、`automate-me`（提炼专属 -mode 技能，unslop 引用改为指向本仓库 `writing`）、`typescript`（TS 类型纪律，原 `type-system-discipline` / `boundary-discipline` 原则引用改为指向本仓库 `principles`）、`statechart`（TLA+ 状态图形式化验证，原样迁入并保留自带 TypeScript 工程）。`typescript` 已接入 `dev` 阶段 3 的 `.ts`/`.tsx` 实现分支。
 
 ## License
 
