@@ -216,13 +216,14 @@ ruby -ryaml -e 'Dir.glob("skills/*/SKILL.md").each { |f| YAML.safe_load(File.rea
 
 ## 安装
 
-只支持三个客户端：**WorkBuddy**、**ZCode**、**Qoder**。技能目录与插件清单各按三家自己的约定放置：
+支持四个客户端：**WorkBuddy**（国内/国际版）、**ZCode**、**Qoder**、**Trae CN**。技能目录与插件清单各按各家自己的约定放置：
 
 | 客户端 | 用户级技能目录 | 项目级技能目录 | 插件清单 |
 |---|---|---|---|
-| WorkBuddy | `~/.workbuddy/skills/` | `.workbuddy/skills/` | `.workbuddy-plugin/plugin.json` |
+| WorkBuddy | `~/.workbuddy/skills/`（国际版 `~/.workbuddy-ai/skills/`） | `.workbuddy/skills/` | `.workbuddy-plugin/plugin.json` |
 | ZCode | `~/.zcode/skills/` | `.zcode/skills/` | `.zcode-plugin/plugin.json` |
 | Qoder | `~/.qoder-cn/skills/`（国际版 `~/.qoder/skills/`） | `.qoder/skills/` | `.qoder-plugin/plugin.json` |
+| Trae CN | `~/.trae-cn/skills/` | `.trae/skills/` | —（无插件清单，仅目录挂载） |
 
 挂载脚本是主要安装方式；三份插件清单供按插件形式分发时用（自己用不需要管它），字段各自贴合三家的清单格式。
 
@@ -241,7 +242,7 @@ git clone https://github.com/kalandramo/skillforge.git "$env:USERPROFILE\code\sk
 | Windows + Git Bash | `install.sh` | 符号链接（需开发者模式），失败则复制 | 复制模式下需重跑脚本 |
 | Windows + PowerShell | `install.ps1` | 目录联接 Junction（免管理员） | 自动生效 |
 
-两个脚本都挂到已存在的下列目录，装了几个客户端就挂几个：`~/.workbuddy/skills/`（WorkBuddy）、`~/.zcode/skills/`（ZCode）、`~/.qoder-cn/skills/`（Qoder 中国版）或 `~/.qoder/skills/`（Qoder 国际版）。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
+两个脚本都挂到已存在的下列目录，装了几个客户端就挂几个：`~/.workbuddy/skills/`（WorkBuddy 国内版）、`~/.workbuddy-ai/skills/`（WorkBuddy 国际版）、`~/.zcode/skills/`（ZCode）、`~/.qoder-cn/skills/`（Qoder 中国版）或 `~/.qoder/skills/`（Qoder 国际版）、`~/.trae-cn/skills/`（Trae CN）。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
 
 检查本地安装是否落后于仓库：
 

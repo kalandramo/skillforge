@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # install.sh — 把本仓库的 skills/* 挂载到宿主技能目录
 #
-# 支持的宿主只有三个：WorkBuddy、ZCode、Qoder。各自的技能目录：
-#   WorkBuddy  ~/.workbuddy/skills
-#   ZCode      ~/.zcode/skills
-#   Qoder      ~/.qoder/skills（国际版）或 ~/.qoder-cn/skills（中国版）
+# 支持的宿主：WorkBuddy（国内/国际版）、ZCode、Qoder、Trae CN。各自的技能目录：
+#   WorkBuddy      ~/.workbuddy/skills（国内版）或 ~/.workbuddy-ai/skills（国际版）
+#   ZCode          ~/.zcode/skills
+#   Qoder          ~/.qoder/skills（国际版）或 ~/.qoder-cn/skills（中国版）
+#   Trae CN        ~/.trae-cn/skills
 #
 # 为什么需要它：技能靠"目录出现在宿主扫描路径下"生效。手工复制会在上游改动后
 # 悄悄失同步，所以优先用符号链接。Windows 下 ln -s 常因权限失败（需开发者模式），
@@ -42,8 +43,9 @@ usage() {
 用法: install.sh [选项]
 
   --target <dir>   指定技能目录（可多次）
-                   缺省自动探测已存在的 ~/.workbuddy/skills、~/.zcode/skills、
-                   ~/.qoder/skills、~/.qoder-cn/skills
+                   缺省自动探测已存在的 ~/.workbuddy/skills、~/.workbuddy-ai/skills、
+                   ~/.zcode/skills、~/.qoder/skills、~/.qoder-cn/skills、
+                   ~/.trae-cn/skills
   --link           优先符号链接（默认）
   --copy           强制复制
   --prune          顺带清理宿主目录里已退役技能的旧副本（清单见 retired.txt）
@@ -73,8 +75,9 @@ done
 REPO_REV="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  for d in "$HOME/.workbuddy/skills" "$HOME/.zcode/skills" \
-           "$HOME/.qoder/skills" "$HOME/.qoder-cn/skills"; do
+  for d in "$HOME/.workbuddy/skills" "$HOME/.workbuddy-ai/skills" \
+           "$HOME/.zcode/skills" "$HOME/.qoder/skills" "$HOME/.qoder-cn/skills" \
+           "$HOME/.trae-cn/skills"; do
     [ -d "$d" ] && TARGETS+=("$d")
   done
   if [ ${#TARGETS[@]} -eq 0 ]; then
