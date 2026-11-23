@@ -242,7 +242,7 @@ git clone https://github.com/kalandramo/skillforge.git "$env:USERPROFILE\code\sk
 | Windows + Git Bash | `install.sh` | 符号链接（需开发者模式），失败则复制 | 复制模式下需重跑脚本 |
 | Windows + PowerShell | `install.ps1` | 目录联接 Junction（免管理员） | 自动生效 |
 
-两个脚本都挂到已存在的下列目录，装了几个客户端就挂几个：`~/.workbuddy/skills/`（WorkBuddy 国内版）、`~/.workbuddy-ai/skills/`（WorkBuddy 国际版）、`~/.zcode/skills/`（ZCode）、`~/.qoder-cn/skills/`（Qoder 中国版）或 `~/.qoder/skills/`（Qoder 国际版）、`~/.trae-cn/skills/`（Trae CN）。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
+两个脚本都探测**宿主主目录**（装过客户端才有）：`~/.workbuddy`（WorkBuddy 国内版）、`~/.workbuddy-ai`（WorkBuddy 国际版）、`~/.zcode`（ZCode）、`~/.qoder`（Qoder 国际版）、`~/.qoder-cn`（Qoder 中国版）、`~/.trae-cn`（Trae CN），并在其下 `skills/` 挂载，`skills/` 不存在时自动创建——装了几个客户端就挂几个。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
 
 检查本地安装是否落后于仓库：
 

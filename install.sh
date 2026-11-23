@@ -43,9 +43,9 @@ usage() {
 用法: install.sh [选项]
 
   --target <dir>   指定技能目录（可多次）
-                   缺省自动探测已存在的 ~/.workbuddy/skills、~/.workbuddy-ai/skills、
-                   ~/.zcode/skills、~/.qoder/skills、~/.qoder-cn/skills、
-                   ~/.trae-cn/skills
+                   缺省自动探测已存在的宿主主目录（~/.workbuddy、~/.workbuddy-ai、
+                   ~/.zcode、~/.qoder、~/.qoder-cn、~/.trae-cn），
+                   并在其下挂载到 skills/（缺失时自动创建）
   --link           优先符号链接（默认）
   --copy           强制复制
   --prune          顺带清理宿主目录里已退役技能的旧副本（清单见 retired.txt）
@@ -75,13 +75,15 @@ done
 REPO_REV="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  for d in "$HOME/.workbuddy/skills" "$HOME/.workbuddy-ai/skills" \
-           "$HOME/.zcode/skills" "$HOME/.qoder/skills" "$HOME/.qoder-cn/skills" \
-           "$HOME/.trae-cn/skills"; do
-    [ -d "$d" ] && TARGETS+=("$d")
+  # 探测依据是宿主主目录存在（装过客户端才有），skills 子目录缺失时由
+  # 安装段的 mkdir -p 自动补建——否则"装了客户端但还没建过 skills"的宿主
+  # 会被静默跳过，用户以为挂上了其实没有。
+  for host in "$HOME/.workbuddy" "$HOME/.workbuddy-ai" "$HOME/.zcode" \
+              "$HOME/.qoder" "$HOME/.qoder-cn" "$HOME/.trae-cn"; do
+    [ -d "$host" ] && TARGETS+=("$host/skills")
   done
   if [ ${#TARGETS[@]} -eq 0 ]; then
-    echo "未探测到技能目录。用 --target 指定，例如：" >&2
+    echo "未探测到任何宿主主目录（.workbuddy/.workbuddy-ai/.zcode/.qoder/.qoder-cn/.trae-cn）。用 --target 指定，例如：" >&2
     echo "  bash install.sh --target \"\$HOME/.workbuddy/skills\"" >&2
     exit 1
   fi
@@ -92,7 +94,7 @@ if [ "$ACTION" = "check" ]; then
   drift=0
   for target in "${TARGETS[@]}"; do
     echo "==> $target"
-    [ -d "$target" ] || { echo "  （目录不存在）"; continue; }
+    [ -d "$target" ] || { echo "  （目录不存在，运行不带 --check 的 install.sh 创建并挂载）"; drift=1; continue; }
     for src in "$SRC_DIR"/*/; do
       name="$(basename "${src%/}")"
       dst="$target/$name"

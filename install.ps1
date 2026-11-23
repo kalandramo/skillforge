@@ -12,9 +12,9 @@
   处理链接，绝不递归删除 Junction。
 
 .PARAMETER Target
-  指定技能目录，可多个。默认自动探测已存在的 ~\.workbuddy\skills、
-  ~\.workbuddy-ai\skills、~\.zcode\skills、~\.qoder\skills、
-  ~\.qoder-cn\skills、~\.trae-cn\skills。
+  指定技能目录，可多个。默认自动探测已存在的宿主主目录
+  (~\.workbuddy、~\.workbuddy-ai、~\.zcode、~\.qoder、~\.qoder-cn、
+  ~\.trae-cn)，并在其下 skills\ 挂载（缺失时自动创建）。
 
 .PARAMETER Copy
   强制复制而非 Junction（不支持链接的极端环境用；改动需重跑）。
@@ -86,19 +86,21 @@ if (-not (Test-Path -LiteralPath $SrcDir)) { throw "未找到 $SrcDir" }
 $RepoRev = Get-RepoRev
 
 if ($Target.Count -eq 0) {
-    $candidates = @(
-        (Join-Path $env:USERPROFILE '.workbuddy\skills'),
-        (Join-Path $env:USERPROFILE '.workbuddy-ai\skills'),
-        (Join-Path $env:USERPROFILE '.zcode\skills'),
-        (Join-Path $env:USERPROFILE '.qoder\skills'),
-        (Join-Path $env:USERPROFILE '.qoder-cn\skills'),
-        (Join-Path $env:USERPROFILE '.trae-cn\skills')
+    # 探测依据是宿主主目录存在（装过客户端才有），skills 子目录缺失时由
+    # 安装段自动补建——否则"装了客户端但还没建过 skills"的宿主会被静默跳过。
+    $hosts = @(
+        (Join-Path $env:USERPROFILE '.workbuddy'),
+        (Join-Path $env:USERPROFILE '.workbuddy-ai'),
+        (Join-Path $env:USERPROFILE '.zcode'),
+        (Join-Path $env:USERPROFILE '.qoder'),
+        (Join-Path $env:USERPROFILE '.qoder-cn'),
+        (Join-Path $env:USERPROFILE '.trae-cn')
     )
-    foreach ($c in $candidates) {
-        if (Test-Path -LiteralPath $c) { $Target += $c }
+    foreach ($h in $hosts) {
+        if (Test-Path -LiteralPath $h) { $Target += (Join-Path $h 'skills') }
     }
     if ($Target.Count -eq 0) {
-        Write-Host "未探测到技能目录。用 -Target 指定，例如：" -ForegroundColor Yellow
+        Write-Host "未探测到任何宿主主目录（.workbuddy/.workbuddy-ai/.zcode/.qoder/.qoder-cn/.trae-cn）。用 -Target 指定，例如：" -ForegroundColor Yellow
         Write-Host "  .\install.ps1 -Target `"$env:USERPROFILE\.workbuddy\skills`""
         exit 1
     }
@@ -112,7 +114,7 @@ if ($Check) {
     $drift = $false
     foreach ($t in $Target) {
         Write-Host "==> $t"
-        if (-not (Test-Path -LiteralPath $t)) { Write-Host "  （目录不存在）"; continue }
+        if (-not (Test-Path -LiteralPath $t)) { Write-Host "  （目录不存在，运行不带 -Check 的 install.ps1 创建并挂载）"; $drift = $true; continue }
         foreach ($s in $skills) {
             $dst = Join-Path $t $s.Name
             if (Test-IsLink $dst) {
