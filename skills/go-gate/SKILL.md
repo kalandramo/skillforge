@@ -79,7 +79,9 @@ LLM 打分制门禁有三个结构性缺陷：解析自由文本容易误判（�
 | 分层只写在文档或团队约定里，代码结构完全自由 | 同上 | 目录推不出层，文档往往是唯一写清方向的地方 |
 
 ```bash
-S=<plugin>/skills/go-gate/scripts/check-arch.py
+# <skills_root> 是装着这些技能的目录：Codex 下是 ~/.agents/skills，WorkBuddy 下是
+# ~/.workbuddy/skills，其余见 dev 的门禁一节。本技能所在目录的上一级即是。
+S=<skills_root>/go-gate/scripts/check-arch.py
 python3 $S --root . --init                    # 目录即层：打印初稿 + 反向依赖清单
 python3 $S --root . --init --write            # 落盘
 python3 $S --root . --evidence                # 目录不按层切：摊事实，交给模型写

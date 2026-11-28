@@ -26,17 +26,23 @@ Where the transcript lives depends on the host:
 
   For each candidate, read the first JSONL line and take the file whose `message.content[0].text` contains the conversation's opening user prompt.
 - **Qoder:** `~/.qoder-cn/projects/<slug>/<session-id>.jsonl` (`~/.qoder/projects/<slug>/` for Qoder international), same `<slug>` rule, same way to confirm a candidate.
+- **Codex:** `~/.codex/sessions/YYYY/MM/DD/rollout-<timestamp>-<uuid>.jsonl`. Codex files sessions by start date, not by project, so the directory tells you nothing about the workspace — read the first `session_meta` line and keep only files whose `payload.cwd` is this workspace, then confirm by the opening user prompt:
+
+  ```bash
+  grep -l "\"cwd\":\"$PWD\"" "$HOME"/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | head -10
+  ```
+
 - **ZCode:** sessions live in a local database, not in per-project files. There is no transcript to read, so pass a tight digest of the session instead.
 
 Take the newest candidates first. If none matches the opening prompt, pass a tight digest of the session instead.
 
 ## 2. Spawn three reviewers in parallel
 
-One message, three subagent calls (WorkBuddy `Agent`; ZCode and Qoder `Task`), `subagent_type: general-purpose`, agent mode (`readonly: false`). Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references, and readonly strips MCPs.
+One message, three subagent calls (WorkBuddy `Agent`; ZCode and Qoder `Task`; Codex `spawn_agent` with its `worker` or `default` agent), `subagent_type: general-purpose`, agent mode (`readonly: false`). Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references, and readonly strips MCPs.
 
 **Host notes.** Keep the prompt. Drop parameters your tool doesn't have. If the host has no subagent tool, run each role yourself, one after another.
 
-**Models.** WorkBuddy, ZCode and Qoder all choose the subagent model and effort themselves, so leave `model` unset: there is no model-config file to read. If a host exposes a model parameter, keep the judgment seats on its strongest setting. If it rejects a slug, use the default and say so.
+**Models.** WorkBuddy, ZCode, Qoder and Codex all choose the subagent model and effort themselves, so leave `model` unset: there is no model-config file to read. If a host exposes a model parameter, keep the judgment seats on its strongest setting. If it rejects a slug, use the default and say so.
 
 | Lens | Seat | Prompt template |
 |---|---|---|
@@ -60,12 +66,12 @@ Present the synthesizer's full Accepted / Rejected / Backlog output and wait for
 
 File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
 
-Never edit a skill under `plugins/cache/`. Before approval, show its destination: `.workbuddy/skills/<skill>/` or `~/.workbuddy/skills/<skill>/` in WorkBuddy, `.zcode/skills/<skill>/` or `~/.zcode/skills/<skill>/` in ZCode, `.qoder/skills/<skill>/` or `~/.qoder-cn/skills/<skill>/` in Qoder. After approval, copy the skill folder there and edit the copy. Never open a PR or push.
+Never edit a skill under `plugins/cache/`. Before approval, show its destination: `.workbuddy/skills/<skill>/` or `~/.workbuddy/skills/<skill>/` in WorkBuddy, `.zcode/skills/<skill>/` or `~/.zcode/skills/<skill>/` in ZCode, `.qoder/skills/<skill>/` or `~/.qoder-cn/skills/<skill>/` in Qoder, `.agents/skills/<skill>/` or `~/.agents/skills/<skill>/` in Codex. After approval, copy the skill folder there and edit the copy. Never open a PR or push.
 
 Follow each approved row's Routing exactly:
 
 - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.
-- Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to your harness's skill-authoring skill and run its draft / test / iterate loop. That is the **skill-creator** skill in WorkBuddy; ZCode and Qoder have none, so follow the Agent Skills format at agentskills.io by hand. "`create-skill`" below means whichever of these you use.
+- Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to your harness's skill-authoring skill and run its draft / test / iterate loop. That is the **skill-creator** skill in WorkBuddy and the bundled `$skill-creator` system skill in Codex; ZCode and Qoder have none, so follow the Agent Skills format at agentskills.io by hand. "`create-skill`" below means whichever of these you use.
 - `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to `create-skill` and run its description-optimization loop.
 - `new skill via create-skill: <kebab-name>`: hand creation to `create-skill`. Do not invent the shape ad hoc.
 

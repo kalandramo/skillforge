@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # install.sh — 把本仓库的 skills/* 挂载到宿主技能目录
 #
-# 支持的宿主：WorkBuddy（国内/国际版）、ZCode、Qoder、Trae CN。各自的技能目录：
+# 支持的宿主：WorkBuddy（国内/国际版）、ZCode、Qoder、Trae CN、Codex。各自的技能目录：
 #   WorkBuddy      ~/.workbuddy/skills（国内版）或 ~/.workbuddy-ai/skills（国际版）
 #   ZCode          ~/.zcode/skills
 #   Qoder          ~/.qoder/skills（国际版）或 ~/.qoder-cn/skills（中国版）
 #   Trae CN        ~/.trae-cn/skills
+#   Codex          ~/.agents/skills（注意不是 ~/.codex/skills，后者是旧位置）
+#
+# Codex 的探测依据与落点不同：配置在 ~/.codex，技能却在 ~/.agents/skills。所以它
+# 不进下面那个 "$host/skills" 的循环，单独处理。
 #
 # 为什么需要它：技能靠"目录出现在宿主扫描路径下"生效。手工复制会在上游改动后
 # 悄悄失同步，所以优先用符号链接。Windows 下 ln -s 常因权限失败（需开发者模式），
@@ -44,8 +48,9 @@ usage() {
 
   --target <dir>   指定技能目录（可多次）
                    缺省自动探测已存在的宿主主目录（~/.workbuddy、~/.workbuddy-ai、
-                   ~/.zcode、~/.qoder、~/.qoder-cn、~/.trae-cn），
+                   ~/.zcode、~/.qoder、~/.qoder-cn、~/.trae-cn、~/.codex），
                    并在其下挂载到 skills/（缺失时自动创建）
+                   Codex 例外：探测 ~/.codex，但挂到 ~/.agents/skills
   --link           优先符号链接（默认）
   --copy           强制复制
   --prune          顺带清理宿主目录里已退役技能的旧副本（清单见 retired.txt）
@@ -82,9 +87,15 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
               "$HOME/.qoder" "$HOME/.qoder-cn" "$HOME/.trae-cn"; do
     [ -d "$host" ] && TARGETS+=("$host/skills")
   done
+  # Codex：装过就有 ~/.codex（CODEX_HOME），技能目录却在 ~/.agents/skills。
+  # 两个目录都认，因为有人设了 CODEX_HOME 或用别的方式只留了 ~/.agents。
+  if [ -d "$HOME/.codex" ] || [ -d "$HOME/.agents" ]; then
+    TARGETS+=("$HOME/.agents/skills")
+  fi
   if [ ${#TARGETS[@]} -eq 0 ]; then
-    echo "未探测到任何宿主主目录（.workbuddy/.workbuddy-ai/.zcode/.qoder/.qoder-cn/.trae-cn）。用 --target 指定，例如：" >&2
+    echo "未探测到任何宿主主目录（.workbuddy/.workbuddy-ai/.zcode/.qoder/.qoder-cn/.trae-cn/.codex）。用 --target 指定，例如：" >&2
     echo "  bash install.sh --target \"\$HOME/.workbuddy/skills\"" >&2
+    echo "  bash install.sh --target \"\$HOME/.agents/skills\"    # Codex" >&2
     exit 1
   fi
 fi

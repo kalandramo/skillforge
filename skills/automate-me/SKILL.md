@@ -12,13 +12,13 @@ A guided flow for turning the user's working conventions into a skill agents wil
 
 This skill orchestrates three others: an inline mining pass (see step 1), your harness's skill-authoring skill (authoring), and this repo's **writing** skill (the Unslop prose discipline). It sequences them. It doesn't replace them.
 
-The skill-authoring skill is **skill-creator** in WorkBuddy. ZCode and Qoder have no equivalent, so follow the Agent Skills format at agentskills.io by hand. "`create-skill`" below means whichever of these you use.
+The skill-authoring skill is **skill-creator** in WorkBuddy and the bundled `$skill-creator` system skill in Codex. ZCode and Qoder have no equivalent, so follow the Agent Skills format at agentskills.io by hand. "`create-skill`" below means whichever of these you use.
 
 ## Flow
 
 ### 0. Check for an existing skill
 
-Look recursively for `*-mode/SKILL.md` matching the user's handle in the host's skill folders. In the project: `.workbuddy/skills/`, `.zcode/skills/`, `.qoder/skills/`. For the user: `~/.workbuddy/skills/`, `~/.zcode/skills/`, `~/.qoder-cn/skills/` (`~/.qoder/skills/` for Qoder international). Mode skills can live in a personal category directory (`<skills>/<handle>/`), not only at the top level. If one exists, confirm intent with the host's structured-question tool (`AskUserQuestion` in WorkBuddy; ZCode and Qoder where available) unless they already said "update my skill" or similar:
+Look recursively for `*-mode/SKILL.md` matching the user's handle in the host's skill folders. In the project: `.workbuddy/skills/`, `.zcode/skills/`, `.qoder/skills/`, `.agents/skills/`. For the user: `~/.workbuddy/skills/`, `~/.zcode/skills/`, `~/.qoder-cn/skills/` (`~/.qoder/skills/` for Qoder international), `~/.agents/skills/` (Codex). Mode skills can live in a personal category directory (`<skills>/<handle>/`), not only at the top level. If one exists, confirm intent with the host's structured-question tool (`AskUserQuestion` in WorkBuddy; `request_user_input` in Codex where enabled; ZCode and Qoder where available) unless they already said "update my skill" or similar:
 
 - Update the existing skill (default for repeat runs)
 - Start fresh (rare, ask why before doing it)
@@ -34,6 +34,7 @@ Locate the active workspace's transcripts before fanning out. Use only that work
 
 - **WorkBuddy:** `~/.workbuddy/projects/<slug>/*.jsonl`, where `<slug>` is the workspace path with every character that isn't a letter or digit turned into "-".
 - **Qoder:** `~/.qoder-cn/projects/<slug>/*.jsonl` (`~/.qoder/projects/<slug>/` for Qoder international), same `<slug>` rule.
+- **Codex:** `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`. Codex files sessions by date, not by project, so scope by `session_meta.cwd` instead of by directory — `grep -l "\"cwd\":\"$PWD\"" "$HOME"/.codex/sessions/*/*/*/rollout-*.jsonl` — and read only the matches.
 - **ZCode:** sessions live in a local database rather than per-project files, so there is no transcript to mine. Skip straight to asking the user in step 2 and say why.
 
 Survey recent agent conversations within that scope for recurring patterns. Run multiple parallel subagents across slices of history (e.g. last 2-4 weeks, split into 3 slices so each has enough material). Model and effort come from the host. Each slice mining subagent reads transcripts from the workspace-scoped path the parent provides, looks for the signals below, and returns a short structured list of patterns it saw with evidence pointers. Default signals worth hunting:
@@ -49,7 +50,9 @@ Cross-check across slices before elevating a signal. Patterns seen in 2+ slices 
 
 ### 2. Ask the user directly
 
-Mining misses intent that hasn't come up yet. Use the host's structured-question tool (structured multi-choice: `AskUserQuestion` in WorkBuddy; ZCode and Qoder where available) rather than asking the user to type from scratch. If the host has none, ask in chat with numbered options.
+Mining misses intent that hasn't come up yet. Use the host's structured-question tool (structured multi-choice: `AskUserQuestion` in WorkBuddy; `request_user_input` in Codex where enabled; ZCode and Qoder where available) rather than asking the user to type from scratch. If the host has none, ask in chat with numbered options.
+
+Codex caps a structured question at 2-3 options with the recommended one first, so split the 4-6 options below into consecutive questions there rather than truncating the list.
 
 Shape: one or two questions with 4-6 options each, multi-select for category questions. Start broad ("Which areas matter most?"), then follow up on selected areas with specific options. After the structured rounds, one free-form chat question catches anything the options missed.
 

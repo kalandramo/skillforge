@@ -21,7 +21,7 @@ Open a todolist with one entry per phase before launching anything.
 
 1. State the done predicate and the artifact or report the swarm must return.
 2. Choose the shape. Partition into slices, race N workers on identical briefs, or mix both. For a race or mixed shape, declare `first pass`, `rank all`, or `best-of` before spawning.
-3. Pick the worker model. WorkBuddy, ZCode and Qoder all choose the subagent model and effort themselves, so leave `model` unset and let every worker run on the host default. If the host exposes a `model` parameter, use one slug it accepts, and name each arm's model up front for a model race. If it rejects a slug, fall back to its default and say so.
+3. Pick the worker model. WorkBuddy, ZCode, Qoder and Codex all choose the subagent model and effort themselves, so leave `model` unset and let every worker run on the host default. If the host exposes a `model` parameter, use one slug it accepts, and name each arm's model up front for a model race. If it rejects a slug, fall back to its default and say so.
 4. Give each worker its own writable output when it writes. When workers verify or measure commits, each brief names the exact SHAs. A measurement brief also names the method (sample count, what one sample is, order). The worker records both in its result.
 
 ## Phase B: Fan out
@@ -30,7 +30,7 @@ Spawn all N workers in one message with `subagent_type: general-purpose`, `run_i
 
 When a worker must start from a non-default pushed branch, pass `cloud_base_branch`.
 
-**Host notes.** WorkBuddy spawns with `Agent`; ZCode and Qoder spawn with `Task`. None of the three runs workers on a cloud VM, so every worker runs locally: give each one its own worktree or output path. Keep the brief. Drop parameters your tool doesn't have. If the host has no subagent tool, run the workers yourself, one after another.
+**Host notes.** WorkBuddy spawns with `Agent`; ZCode and Qoder spawn with `Task`; Codex spawns with `spawn_agent` (built-in agents `explorer`, `worker`, `default`). None of the four runs workers on a cloud VM, so every worker runs locally: give each one its own worktree or output path. Keep the brief. Drop parameters your tool doesn't have. If the host has no subagent tool, run the workers yourself, one after another.
 
 Every brief stands alone. Include the goal, scope, exact slice or race arm, how to verify, and what to report. Reports use `PASS`, `ISSUES`, or `BLOCKED` with evidence. A worker that can prove a defect reports `ISSUES` and lists every issue it can prove, not only the first.
 

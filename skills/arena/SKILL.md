@@ -16,7 +16,7 @@ Every candidate gets the same prompt, so the prompt is the contract.
 
 1. State the artifact each candidate is producing.
 2. Derive the rubric, 3-6 concrete gradeable criteria for what success looks like on *this* task. It is the picker's tool in Phase D. Candidates only see the task.
-3. Pick the runners. WorkBuddy, ZCode and Qoder all choose the subagent model and effort themselves, so leave `model` unset and give every runner the host default: diversity then has to come from the briefs, not from the slugs. If the host does expose a `model` parameter, put at least two runners on different model families when it lets you choose, and fall back to the host default when it rejects a slug. Spawn more runners when the arena covers multiple design directions. Use the same model N times when the work is generation-bound rather than judgment-sensitive.
+3. Pick the runners. WorkBuddy, ZCode, Qoder and Codex all choose the subagent model and effort themselves, so leave `model` unset and give every runner the host default: diversity then has to come from the briefs, not from the slugs. If the host does expose a `model` parameter, put at least two runners on different model families when it lets you choose, and fall back to the host default when it rejects a slug. Spawn more runners when the arena covers multiple design directions. Use the same model N times when the work is generation-bound rather than judgment-sensitive.
 4. Give each candidate its own output location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per the **separate-before-serializing-shared-state** entry in the **principles** skill.
 
 ## Phase B: Fan out

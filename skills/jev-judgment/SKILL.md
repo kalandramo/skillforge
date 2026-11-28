@@ -60,7 +60,7 @@ user-invocable: true
 
 ## 环境准备
 
-宿主 MCP 配置中加入（WorkBuddy 写 `~/.workbuddy/mcp.json`；ZCode 写 `~/.zcode/cli/config.json` 或用插件设置填 key；Qoder 用设置里的 MCP 面板）：
+宿主 MCP 配置中加入（WorkBuddy 写 `~/.workbuddy/mcp.json`；ZCode 写 `~/.zcode/cli/config.json` 或用插件设置填 key；Qoder 用设置里的 MCP 面板；Codex 写 `~/.codex/config.toml` 的 `[mcp_servers.jev]` 段，下表 JSON 换成等价 TOML）：
 
 ```json
 {

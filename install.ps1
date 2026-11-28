@@ -14,7 +14,8 @@
 .PARAMETER Target
   指定技能目录，可多个。默认自动探测已存在的宿主主目录
   (~\.workbuddy、~\.workbuddy-ai、~\.zcode、~\.qoder、~\.qoder-cn、
-  ~\.trae-cn)，并在其下 skills\ 挂载（缺失时自动创建）。
+  ~\.trae-cn、~\.codex)，并在其下 skills\ 挂载（缺失时自动创建）。
+  Codex 例外：探测 ~\.codex，但挂到 ~\.agents\skills。
 
 .PARAMETER Copy
   强制复制而非 Junction（不支持链接的极端环境用；改动需重跑）。
@@ -99,9 +100,17 @@ if ($Target.Count -eq 0) {
     foreach ($h in $hosts) {
         if (Test-Path -LiteralPath $h) { $Target += (Join-Path $h 'skills') }
     }
+    # Codex：装过就有 ~/.codex（CODEX_HOME），技能目录却在 ~/.agents/skills。
+    # 不进上面那个 $host\skills 循环，因为探测用 ~/.codex 而落点是 ~/.agents/skills。
+    $codex = Join-Path $env:USERPROFILE '.codex'
+    $agents = Join-Path $env:USERPROFILE '.agents'
+    if ((Test-Path -LiteralPath $codex) -or (Test-Path -LiteralPath $agents)) {
+        $Target += (Join-Path $agents 'skills')
+    }
     if ($Target.Count -eq 0) {
-        Write-Host "未探测到任何宿主主目录（.workbuddy/.workbuddy-ai/.zcode/.qoder/.qoder-cn/.trae-cn）。用 -Target 指定，例如：" -ForegroundColor Yellow
+        Write-Host "未探测到任何宿主主目录（.workbuddy/.workbuddy-ai/.zcode/.qoder/.qoder-cn/.trae-cn/.codex）。用 -Target 指定，例如：" -ForegroundColor Yellow
         Write-Host "  .\install.ps1 -Target `"$env:USERPROFILE\.workbuddy\skills`""
+        Write-Host "  .\install.ps1 -Target `"$env:USERPROFILE\.agents\skills`"    # Codex"
         exit 1
     }
 }

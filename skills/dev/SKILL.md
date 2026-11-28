@@ -38,7 +38,7 @@ dev（本技能，内层循环）
 
 三者职责严格分离，任何一种都不能替代另一种：`go-gate` 回答"这版对不对"，`loop` 回答"这版要不要留、还继续吗"，`dev` 回答"接下来做什么"。判据与验证分离后，加一门语言只需照着同一份契约再写一个门禁脚本（`ts-gate` 就是这么来的），判定逻辑不动。
 
-上游 goal-workflow 的 `review-it` 依赖宿主内置的 `/review` 类命令，WorkBuddy / ZCode / Qoder 都没有，所以本仓库没有收录它。本技能因此内置"自包含审阅"（阶段 5）：派独立子代理读 diff，不依赖任何外部命令。
+上游 goal-workflow 的 `review-it` 依赖宿主内置的 `/review` 类命令。WorkBuddy / ZCode / Qoder 都没有；Codex 有（`/review` 与 `codex review`），但它只按优先级列问题，没有本仓库的判定契约（blocking 逐条验真、发现必须带运行证据、越界一律 blocking），四家宿主行为会因此不一致，所以本仓库仍不收录它。本技能因此内置"自包含审阅"（阶段 5）：派独立子代理读 diff，不依赖任何外部命令，四个宿主走同一条路径。
 
 ### 指导原则（参考 `principles` 技能）
 
@@ -104,7 +104,7 @@ dev（本技能，内层循环）
   "criteria": [
     { "id": "C1", "text": "命中率 ≥ 80%", "verify": "go test -run TestHitRate", "done": false },
     { "id": "C2", "text": "现有测试全绿", "verify": "go test ./...", "done": false },
-    { "id": "C3", "text": "不新增跨层依赖（遵守 .arch.json）", "verify": "bash <plugin_root>/skills/go-gate/scripts/gate.sh --skip build,vet,test,race,lint,bench", "done": false }
+    { "id": "C3", "text": "不新增跨层依赖（遵守 .arch.json）", "verify": "bash <skills_root>/go-gate/scripts/gate.sh --skip build,vet,test,race,lint,bench", "done": false }
   ],
   "history": [],
   "updated_at": "2026-11-13T16:00:00+08:00"
@@ -157,10 +157,10 @@ dev（本技能，内层循环）
 
   ```bash
   # 原生契约：--governed 传它的 source key（archgate 就是 forbiddenImports 的 5 个 key）
-  python3 <plugin_root>/skills/go-gate/scripts/check-arch.py --root . \
+  python3 <skills_root>/go-gate/scripts/check-arch.py --root . \
     --blind-spots --governed session,kernel,agent,runner,channel
   # .arch.json 契约：从 layers 直接取
-  python3 <plugin_root>/skills/go-gate/scripts/check-arch.py --root . --blind-spots --governed @config
+  python3 <skills_root>/go-gate/scripts/check-arch.py --root . --blind-spots --governed @config
   ```
 
   输出按顶层分组聚合、带退出码（有盲区 = 1），main 包自动排除（装配根不可被 import，没有"它能否依赖谁"的问题）。
@@ -168,7 +168,7 @@ dev（本技能，内层循环）
 - **层内方向单独看，因为它不受"只向下"约束。** 本次涉及的组若本身是整层（如 L6 同时装着 `telemetry` / `controlplane` / `host/*` / 装配根），跑一次：
 
   ```bash
-  python3 <plugin_root>/skills/go-gate/scripts/check-arch.py --root . \
+  python3 <skills_root>/go-gate/scripts/check-arch.py --root . \
     --intra --within telemetry,controlplane,host
   ```
 
@@ -366,10 +366,10 @@ dev（本技能，内层循环）
 **涉及 `.ts` / `.tsx` 文件时，先读 `typescript` 技能的类型纪律**（判别联合、品牌类型、边界校验、避免 `as` 强转等），其下的 `references/patterns.md` 有每条规则的代码示例。前端 / UI 任务落地后，用 `writing` 技能的 §3（Impeccable，`npx impeccable detect`）做最后一道去 AI 味闸门。
 
 ```bash
-bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --root <repo>
+bash <skills_root>/modern-go/scripts/modern_index.sh --root <repo>
 # 输出：项目 Go 版本、46 条规则中当前版本可用/不可用的清单（含行号范围），约 40 行
 # 命中某条后只抽那一节：
-bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --section <起始行>
+bash <skills_root>/modern-go/scripts/modern_index.sh --section <起始行>
 ```
 
 规则：
@@ -380,12 +380,24 @@ bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --section <起始行
 
 ### 4. 门禁
 
-按本轮改动的语言选门禁，**不要两种都跑**——另一语言的门禁会全量扫描无关代码，既慢又引入噪声：
+按本轮改动的语言选门禁，**不要两种都跑**——另一语言的门禁会全量扫描无关代码，既慢又引入噪声。
+
+`<skills_root>` 是"装着这些技能的目录"，按宿主不同而不同，**不要拼成 `<plugin_root>/skills/`**——Codex 的技能根目录本身就是 skills 目录，多一层就找不到脚本：
+
+| 宿主 | `<skills_root>` |
+|---|---|
+| WorkBuddy | `~/.workbuddy/skills`（国际版 `~/.workbuddy-ai/skills`） |
+| ZCode | `~/.zcode/skills` |
+| Qoder | `~/.qoder/skills` 或 `~/.qoder-cn/skills` |
+| Codex | `~/.agents/skills` |
+| 项目级 | 仓库根的 `.workbuddy/skills`、`.zcode/skills`、`.qoder/skills`、`.agents/skills` |
+
+拿不准时读本文件自身的绝对路径，它的上一级目录就是 `<skills_root>`。
 
 | 项目类型 | 命令 |
 |---|---|
-| Go（有 `go.mod`） | `bash <plugin_root>/skills/go-gate/scripts/gate.sh --root <repo> --json [--require-arch] [--race] [--bench='^BenchmarkX$']`（项目无原生架构判定时加 `--require-arch`） |
-| TS/JS（有 `package.json`） | `bash <plugin_root>/skills/ts-gate/scripts/ts_gate.sh --root <repo> --json [--build]` |
+| Go（有 `go.mod`） | `bash <skills_root>/go-gate/scripts/gate.sh --root <repo> --json [--require-arch] [--race] [--bench='^BenchmarkX$']`（项目无原生架构判定时加 `--require-arch`） |
+| TS/JS（有 `package.json`） | `bash <skills_root>/ts-gate/scripts/ts_gate.sh --root <repo> --json [--build]` |
 | 两者都有（monorepo） | 各跑一次；改动所在那侧必须全绿，另一侧若被波及也要跑 |
 | 都没有 | 跳过门禁，并在报告里写明"本项目无可用门禁"——**不得**用模型自评代替 |
 
@@ -438,7 +450,7 @@ bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --section <起始行
 确需在本轮做结构改进时（即本轮目标本就是 `refactor`），按需抽取 `refactor` 的对应手法，不要整份读：
 
 ```bash
-grep -n '^### ' <plugin_root>/skills/refactor/SKILL.md    # 定位手法章节（Composing Methods / Simplifying Conditionals …）
+grep -n '^### ' <skills_root>/refactor/SKILL.md    # 定位手法章节（Composing Methods / Simplifying Conditionals …）
 # 再按行号抽那一节，约 30-80 行
 ```
 
@@ -449,7 +461,7 @@ grep -n '^### ' <plugin_root>/skills/refactor/SKILL.md    # 定位手法章节�
 **判定必须由 `loop` 技能给出，不由本会话自行裁定。** 编排层只提供输入：指标值与本轮目标。
 
 ```bash
-LOOP=<plugin_root>/skills/loop/scripts/loop.sh
+LOOP=<skills_root>/loop/scripts/loop.sh
 V=$(bash $LOOP decide "$METRIC" --goal="$GOAL")   # KEEP | REVERT | INVALID | BASELINE
 ```
 

@@ -33,7 +33,7 @@ user-invocable: true
 
 探索代码库回答 "how does X work?"。产出 senior 工程师上手一个子系统时的架构讲解——足够建立可用的心智模型，又不至于读起来像带注释的源码。
 
-每个派出的 explorer / explainer 都是一个子代理（WorkBuddy 用 `Agent`，ZCode / Qoder 用 `Task`）。explorer 用 `readonly: true`，explainer 用宿主的默认模型，任务最难时上调一档。三个宿主都自动选型，没有模型配置文件可读。每个子代理的推理档位与快慢按任务自定。若工具拒绝某个 slug，用宿主默认并说明。若宿主没有子代理工具，就自己依次跑每个角色。
+每个派出的 explorer / explainer 都是一个子代理（WorkBuddy 用 `Agent`，ZCode / Qoder 用 `Task`，Codex 用 `spawn_agent`，只读角色用内置的 `explorer`）。explorer 用 `readonly: true`（Codex 下即 `explorer` 类型），explainer 用宿主的默认模型，任务最难时上调一档。四家宿主都自动选型，没有模型配置文件可读。每个子代理的推理档位与快慢按任务自定。若工具拒绝某个 slug，用宿主默认并说明。若宿主没有子代理工具，就自己依次跑每个角色。
 
 ### 1. 评估复杂度
 

@@ -11,7 +11,7 @@
 
 ## 三分钟上手
 
-下面以 WorkBuddy 为例。ZCode、Qoder 用法完全一样，只是技能目录不同，见[安装](#安装)。
+下面以 WorkBuddy 为例。ZCode、Qoder、Codex、Trae CN 用法完全一样，只是技能目录不同，见[安装](#安装)。Codex 另有三处差异（调用方式、描述预算、结构化提问开关），装完先看[Codex 与其余四家的用法差异](#codex-与其余四家的用法差异)。
 
 ### 第 1 步：挂载技能
 
@@ -20,7 +20,7 @@ git clone https://github.com/kalandramo/skillforge.git ~/code/skillforge
 bash ~/code/skillforge/install.sh
 ```
 
-脚本会自己找到你机器上装了的客户端（WorkBuddy / ZCode / Qoder），把 22 个技能链接进它们的技能目录。输出里出现 22 行 `[link]`（Windows 上是 `[junction]`）就是成功，不需要你做别的。若有个别技能被标成 `[skip]`，说明那个名字你已经装了别的东西，脚本不肯覆盖——先看[常见困惑](#常见困惑)。
+脚本会自己找到你机器上装了的客户端（WorkBuddy / ZCode / Qoder / Trae CN / Codex），把 22 个技能链接进它们的技能目录。输出里出现 22 行 `[link]`（Windows 上是 `[junction]`）就是成功，不需要你做别的。若有个别技能被标成 `[skip]`，说明那个名字你已经装了别的东西，脚本不肯覆盖——先看[常见困惑](#常见困惑)。
 
 Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE\code\skillforge\install.ps1"`，其余不变，细节见[安装](#安装)。
 
@@ -34,7 +34,13 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 
 > 你现在有哪些技能？
 
-应该能看到 `dev`、`go-gate`、`loop` 这些名字。看不到就跳去看[常见困惑](#常见困惑)。
+应该能看到 `dev`、`go-gate`、`loop` 这些名字。Codex 里两种查法：输入 `/skills` 看列表，或跑下面这条看模型实际拿到的那份清单（不消耗模型调用，输出里 `r0` 就是技能根目录）：
+
+```bash
+codex debug prompt-input | grep -o '<skills_instructions>.*' | head -c 500
+```
+
+看不到就跳去看[常见困惑](#常见困惑)。
 
 ### 第 4 步：说第一句人话
 
@@ -169,7 +175,13 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 那个名字下已经有别的东西（通常是早先装过的旧版技能），脚本默认不覆盖别人的东西。确认它确实该被替换后，把旧目录改名再重跑：`mv ~/.workbuddy/skills/interrogate ~/.workbuddy/skills/interrogate.bak`，然后重跑一次 `install.sh`。升级场景更省事的做法是在仓库目录下跑 `bash install.sh --prune`，它会按 `retired.txt` 把已废弃的旧技能挪进备份目录。
 
 **说了话但助手没加载对应技能？**
-两种可能：一是没重开会话（技能列表在启动时才读）；二是那句话里没有触发词——触发靠模型判断，不是硬字符串匹配。直接点名最快：说「用 dev 做这个」，或输入 `/` 从列表里挑。
+两种可能：一是没重开会话（技能列表在启动时才读）；二是那句话里没有触发词——触发靠模型判断，不是硬字符串匹配。直接点名最快：说「用 dev 做这个」，或输入 `/` 从列表里挑。Codex 里点名的写法是 `$dev`。
+
+**Codex 里看不到技能？**
+先确认装在 `~/.agents/skills/`，不是 `~/.codex/skills/`——后者是旧位置。再在 Codex 里输入 `/skills` 看列表。还看不到就重启 Codex（技能在启动时扫描）。`bash install.sh --check` 能确认链接是否真的建好了。
+
+**Codex 里技能不自动触发，非要 `$名字` 才用？**
+Codex 给初始技能列表设了预算，技能多时会缩短各条 description——触发词越靠后越容易先丢。本仓库 22 个技能合计约 4k 字符，实测在同一台装了 57 个技能的机器上仍未触发缩短；但你另外装得更多时就会。两种解法：把 `~/.codex/config.toml` 的 `skills.max_context_tokens` 调大（上限 10000），或直接用 `$dev` 点名。想确认当前状态，跑 `codex debug prompt-input` 看模型实际拿到的清单。
 
 **感觉它读了很多东西、变慢了？**
 技能文档加起来几千行，但设计上**从不整份加载**：`dev` 按阶段只读当下需要的部分，`modern-go` 用一个索引脚本按 Go 版本切片，只抽命中的那一节。如果还是嫌慢，改用单点技能（`go-gate`、`explain`）替掉 `dev`。
@@ -274,7 +286,7 @@ ruby -ryaml -e 'Dir.glob("skills/*/SKILL.md").each { |f| YAML.safe_load(File.rea
 
 ## 安装
 
-支持四个客户端：**WorkBuddy**（国内/国际版）、**ZCode**、**Qoder**、**Trae CN**。技能目录与插件清单各按各家自己的约定放置：
+支持五个客户端：**WorkBuddy**（国内/国际版）、**ZCode**、**Qoder**、**Trae CN**、**Codex**。技能目录与插件清单各按各家自己的约定放置：
 
 | 客户端 | 用户级技能目录 | 项目级技能目录 | 插件清单 |
 |---|---|---|---|
@@ -282,8 +294,11 @@ ruby -ryaml -e 'Dir.glob("skills/*/SKILL.md").each { |f| YAML.safe_load(File.rea
 | ZCode | `~/.zcode/skills/` | `.zcode/skills/` | `.zcode-plugin/plugin.json` |
 | Qoder | `~/.qoder-cn/skills/`（国际版 `~/.qoder/skills/`） | `.qoder/skills/` | `.qoder-plugin/plugin.json` |
 | Trae CN | `~/.trae-cn/skills/` | `.trae/skills/` | —（无插件清单，仅目录挂载） |
+| Codex | `~/.agents/skills/` | `.agents/skills/` | —（仅目录挂载） |
 
 挂载脚本是主要安装方式；三份插件清单供按插件形式分发时用（自己用不需要管它），字段各自贴合三家的清单格式。
+
+**Codex 的技能目录不是 `~/.codex/skills`。** 配置在 `~/.codex`（`CODEX_HOME`），技能却在 `~/.agents/skills`；`~/.codex/skills` 是旧位置，已弃用但仍兼容。安装脚本探测 `~/.codex` 存在，落点写 `~/.agents/skills`。Codex 扫描时会跟随符号链接，所以 `install.sh` 的链接方式照常可用。
 
 **首次安装**就是[三分钟上手](#三分钟上手)第 1 步那两条命令（需要 bash，macOS / Linux / Git Bash 自带），这里不再重复。Windows 且只有 PowerShell 时，改用等价的原生脚本（推荐，能建 Junction，改动自动同步）：
 
@@ -300,7 +315,19 @@ git clone https://github.com/kalandramo/skillforge.git "$env:USERPROFILE\code\sk
 | Windows + Git Bash | `install.sh` | 符号链接（需开发者模式），失败则复制 | 复制模式下需重跑脚本 |
 | Windows + PowerShell | `install.ps1` | 目录联接 Junction（免管理员） | 自动生效 |
 
-两个脚本都探测**宿主主目录**（装过客户端才有）：`~/.workbuddy`（WorkBuddy 国内版）、`~/.workbuddy-ai`（WorkBuddy 国际版）、`~/.zcode`（ZCode）、`~/.qoder`（Qoder 国际版）、`~/.qoder-cn`（Qoder 中国版）、`~/.trae-cn`（Trae CN），并在其下 `skills/` 挂载，`skills/` 不存在时自动创建——装了几个客户端就挂几个。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
+两个脚本都探测**宿主主目录**（装过客户端才有）：`~/.workbuddy`（WorkBuddy 国内版）、`~/.workbuddy-ai`（WorkBuddy 国际版）、`~/.zcode`（ZCode）、`~/.qoder`（Qoder 国际版）、`~/.qoder-cn`（Qoder 中国版）、`~/.trae-cn`（Trae CN），并在其下 `skills/` 挂载，`skills/` 不存在时自动创建——装了几个客户端就挂几个。Codex 是唯一例外：探测 `~/.codex`，却挂到 `~/.agents/skills`。目标已有同名目录但**不带 `.skillforge-origin` 标记**时一律跳过，不覆盖别人的技能。
+
+### Codex 与其余四家的用法差异
+
+挂上就能用，但有三处不同，遇到"装了没反应"先看这里：
+
+| 差异 | 说明 |
+|---|---|
+| 调用方式 | Codex 里用 `/skills` 或 `$dev`、`$go-gate` 显式点名；其余宿主靠自然语言自动匹配。两种都可用 |
+| 技能描述有预算 | Codex 的初始技能列表有上限（2% 上下文窗口，未知窗口时 8000 字符）。实测 0.172.0：57 个技能、21009 字符仍被**全量列出、未截断**，说明实际预算随窗口浮动、比文档的 8000 更宽。但技能很多时 Codex 会先缩短描述，触发词排在末尾的技能会先失去匹配能力。上限定值可用 `skills.max_context_tokens` 调到 10000 |
+| 结构化提问要开 | Codex 的 `request_user_input` 在 Default 模式下默认不可用，需要在 `~/.codex/config.toml` 加 `[features]` 段并置 `default_mode_request_user_input = true`。没开时技能会退回聊天里提问，流程不中断 |
+
+子代理、会话记录、MCP 配置这些能力 Codex 都有，只是名字不同：`spawn_agent`（内置 `default`/`worker`/`explorer`）、`~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（按日期归档，靠 `session_meta.cwd` 定位工作区）、`~/.codex/config.toml` 的 `[mcp_servers.*]`。相关技能已按此写好分支，不用你手动适配。
 
 检查本地安装是否落后于仓库：
 
@@ -372,7 +399,7 @@ skills/<name>/
 
 本仓库的 `dev` 与 `go-gate` 最初在 [smallnest/goal-workflow](https://github.com/smallnest/goal-workflow) 的框架上改造而来，现独立维护：
 
-- 上游的 `review-it` 依赖宿主内置 `/review`、`codex review`，在无这些命令的环境不可用 → 本仓库改为 `dev` 阶段 5 的自包含子代理审阅
+- 上游的 `review-it` 依赖宿主内置 `/review`、`codex review`。这两个命令只有 Codex 有，WorkBuddy / ZCode / Qoder / Trae CN 都没有，四家行为会因此不一致 → 本仓库改为 `dev` 阶段 5 的自包含子代理审阅，五个客户端走同一条路径，判定契约（blocking 逐条验真、发现须带运行证据）不依赖任何宿主的内置命令
 - 上游的判定分散在提示词里 → 本仓库抽成 `loop` 脚本，停止条件有确定性输出
 - 上游 23 个技能同时启用会让上下文在第一步就吃紧 → 本仓库只收录 Go 后端链路真正用得上的九个，其余留在上游
 - `modern-go` 原样搬入会一次吃掉 15k tokens → 本仓库配了 `modern_index.sh` 做版本切片，按需加载单节
@@ -399,7 +426,7 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 
 另有五组技能同样合并自 pstack（同作者，MIT），把原分散的独立技能聚合成单篇、并解开对 pstack 其它技能（poteto-mode 等）的硬依赖：`writing`（technical-writing + unslop + impeccable 合并，覆盖文档规范 / 去 AI 味 / 前端 UI 去 AI 味）、`explain`（bro + in-your-own-words + how + why + teach 合并，覆盖讲解 / 走查 / 动机追溯 / 传授，子代理模型改为由宿主自动选定）、`automate-me`（提炼专属 -mode 技能，unslop 引用改为指向本仓库 `writing`）、`typescript`（TS 类型纪律，原 `type-system-discipline` / `boundary-discipline` 原则引用改为指向本仓库 `principles`）、`statechart`（TLA+ 状态图形式化验证，原样迁入并保留自带 TypeScript 工程）。`typescript` 已接入 `dev` 阶段 3 的 `.ts`/`.tsx` 实现分支。
 
-另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 24 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。这批内容原为 pstack 的 Cursor 版，收编时按三客户端重写：各 playbook 中对 `architect`（→ `dev` 设计阶段）、`unslop`/`deslop`/`impeccable`（→ `writing` 的 Unslop / Impeccable 章节）、`principle-*`（→ `principles` 对应条目）的引用已统一改写为本仓库技能；模型选择一律交给宿主自动选型（删掉了 `~/.cursor/rules/pstack-models.mdc` 这类配置文件与 `claude-opus-5-5-xhigh` / `grok-4.7-xhigh-fast` 这类硬编码 slug）；Cursor 专有的 cloud agent、`control-cli`/`control-ui`、`create-skill` 等引用改为三家各自可行的替代（浏览器自动化、`skill-creator`、Agent Skills 格式）；子代理工具名按 WorkBuddy `Agent` / ZCode 与 Qoder `Task` 区分。
+另有七个技能同样迁移自 pstack（同作者，MIT），作为独立技能收编，解开对 pstack 其它技能的硬依赖并把跨引用改写指向本仓库内部技能与 `principles`：`arena`（多候选竞技嫁接）、`swarm`（并行扇出覆盖）、`sharpen`（深化任务重写提示词）、`interrogate`（多模型对抗审查）、`reflect`（复盘沉淀）、`show-me-your-work`（决策留痕）、`poteto-mode`（总路由元技能，自带 scripts/ 工程与 24 个 playbook，跨引用改写指向 dev / loop / go-gate / writing / explain / principles 等）。这批内容原为 pstack 的 Cursor 版，收编时按多客户端重写：各 playbook 中对 `architect`（→ `dev` 设计阶段）、`unslop`/`deslop`/`impeccable`（→ `writing` 的 Unslop / Impeccable 章节）、`principle-*`（→ `principles` 对应条目）的引用已统一改写为本仓库技能；模型选择一律交给宿主自动选型（删掉了 `~/.cursor/rules/pstack-models.mdc` 这类配置文件与 `claude-opus-5-5-xhigh` / `grok-4.7-xhigh-fast` 这类硬编码 slug）；Cursor 专有的 cloud agent、`control-cli`/`control-ui`、`create-skill` 等引用改为各家各自可行的替代（浏览器自动化、`skill-creator`、Agent Skills 格式）；子代理工具名按 WorkBuddy `Agent` / ZCode 与 Qoder `Task` / Codex `spawn_agent` 区分；会话记录路径补上 Codex 的 `~/.codex/sessions/`（按日期归档，靠 `session_meta.cwd` 定位工作区）。
 
 ### Duoasa-skill
 
@@ -416,7 +443,7 @@ git checkout upstream/master -- skills/prd    # 单独取一个，审视后提�
 
 [Duoasa/DSH-to-Figma](https://github.com/Duoasa/DSH-to-Figma)（MIT，© 2026 Duoasa）是 DSH 原生插件：注册 43 个本地工具，经 `127.0.0.1:3055` 的 HTTP 长轮询队列驱动一个 Figma 配套插件，在 Figma Desktop 的沙箱里执行 Plugin API 读写画布。**代码没有收编，也不建议这么做**：
 
-- 它不是技能，是工具。本仓库是 markdown + bash 的方法集、靠符号链接挂载；这个是 184 个文件的 Node 插件，peer 依赖 `@deepseek-ai/cordis`，只有 DSH 能加载，WorkBuddy / ZCode / Qoder 都不认它的注册协议。
+- 它不是技能，是工具。本仓库是 markdown + bash 的方法集、靠符号链接挂载；这个是 184 个文件的 Node 插件，peer 依赖 `@deepseek-ai/cordis`，只有 DSH 能加载，WorkBuddy / ZCode / Qoder / Codex 都不认它的注册协议。
 - 它自带的 `skills/figma-workbench`（40 行 + 17 个 reference）是那 43 个工具的说明书，不是独立方法论。单独挂进来等于让助手去调 43 个不存在的工具——比「悬空技能名」严重得多。
 - 桥接协议本身是干净的（`/connect`、`/poll`、`/result` 的 HTTP 队列），理论上可以包成 MCP server 给三家客户端用，但要自己承担 session/workspace 重映射、`.figma/` 工作目录、companion 打包与全套测试；上游在快速迭代（featureVersion 已到 7），fork 必然漂移。
 
