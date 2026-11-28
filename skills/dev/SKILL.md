@@ -1,7 +1,7 @@
 ---
 name: dev
 display_name: "开发闭环（Dev）"
-description: "统一开发入口：一条需求进来，自动走完判据、按需设计、切片、实现、门禁、独立子代理审阅与判定收尾，内层循环迭代到验收标准满足；用户声明只要设计文档或设计加切片时，按 stop_after 在阶段边界停止。开工前必读项目全局契约（AGENTS.md 架构条目 + .arch.json 分层表），实现与审阅都受其约束，收尾对账含全局契约。设计阶段为每个功能产出一份合并文档（tasks/<id>-design.md），内含产品需求、设计取舍、实现契约三部分，开头有中英文术语表，英文专有名词首次出现必带中文译文。当用户说「dev」「一条龙做完」「端到端实现这个需求」「做个功能」「实现这个接口」「把这个性能压到 X 以内」「只做设计」「出个设计文档就停」「设计加切片先别实现」「写设计文档」「生成 spec」「跑完同步设计文档」「文档和代码对一下」「优化性能并同步原设计文档」「更新之前的功能文档」时使用。收尾阶段强制核对设计文档与实现的一致性，可通过 `doc_path` 指定回写上一次的功能文档，并扫描证据源沉淀踩坑经验（写入须经用户确认）。不适用于只审不改（用 interrogate）、多方案竞技（用 arena）、多切片并行（用 swarm）。"
+description: "统一开发入口：一条需求进来，自动走完判据、按需设计、切片、实现、门禁、独立子代理审阅与判定收尾，内层循环迭代到验收标准满足；用户声明只要设计文档或设计加切片时，按 stop_after 在阶段边界停止。开工前落定项目全局契约：先查项目自带架构判定（internal/archgate / depguard / scripts/check-arch*），有则沿用、不另造 .arch.json；没有则按目录形态用 check-arch.py --init 或 --evidence 当场生成并过 --verify，不询问「要不要落」。**契约存在不等于管得住本次改动**：还要用 --blind-spots 算覆盖度（本次要改的包是否在规则的 source 集合里），并用 --intra 看层内方向（哪个包与同一组包既在上又在下），盲区必须处置（补规则或登记裁决出处）才允许开工。Go 项目门禁按需带 --require-arch，缺契约即失败。实现与审阅都受契约约束，收尾对账含全局契约与盲区处置。设计阶段为每个功能产出一份合并文档（tasks/<id>-design.md），内含产品需求、设计取舍、实现契约三部分，开头有中英文术语表，英文专有名词首次出现必带中文译文。当用户说「dev」「一条龙做完」「端到端实现这个需求」「做个功能」「实现这个接口」「把这个性能压到 X 以内」「只做设计」「出个设计文档就停」「设计加切片先别实现」「写设计文档」「生成 spec」「跑完同步设计文档」「文档和代码对一下」「优化性能并同步原设计文档」「更新之前的功能文档」时使用。收尾阶段强制核对设计文档与实现的一致性，可通过 `doc_path` 指定回写上一次的功能文档，并扫描证据源沉淀踩坑经验（写入须经用户确认）。不适用于只审不改（用 interrogate）、多方案竞技（用 arena）、多切片并行（用 swarm）。"
 user-invocable: true
 ---
 
@@ -21,7 +21,9 @@ user-invocable: true
 
 ```
 dev（本技能，内层循环）
-  ├─ 阶段0 判据     → 读全局契约（AGENTS.md 架构条目 + .arch.json 层表），把架构约束落成一条验收标准
+  ├─ 阶段0 判据     → 落定全局契约（原生 archgate / .arch.json；无则当场生成过 --verify），
+  │                   再算契约覆盖度（--blind-spots：本次要改的包是否在规则里）与层内方向
+  │                   （--intra：哪个包与一组既在上又在下），盲区必须处置才进阶段 1
   ├─ 阶段0.5 诊断   → smell（存量模块改造，或 arch 报警后的局部 import 图分析，每需求最多 1 次）
   ├─ 阶段1 设计     → 选择题提问消歧 + 产出一份合并设计文档，存 tasks/（架构节引用全局层表，不重画）
   │                   └─ stop_after=design：文档落盘即停，进阶段 7
@@ -29,7 +31,7 @@ dev（本技能，内层循环）
   │                   └─ stop_after=slicing：产出落盘即停，进阶段 7
   ├─ 阶段3 实现     → 先看层表再动手；modern-go 索引（仅 .go）；typescript 纪律（仅 .ts/.tsx）
   ├─ 阶段4 门禁     → go-gate（含 arch 分层判定）/ ts-gate，按改动语言择一，是验证与指标的唯一来源
-  ├─ 阶段5 审阅     → 独立子代理读 diff + 全局契约；越界依赖（arch_drift）直接 blocking
+  ├─ 阶段5 审阅     → 独立子代理读 diff + 契约 + 覆盖结论；越界（arch_drift）blocking，同层横向依赖（intra_layer）需用户裁决
   ├─ 阶段6 判定     → loop（epsilon 比较、keep/revert、停止条件）
   └─ 阶段7 收尾     → 对账设计文档与全局契约；默认停在分支，用户明确要求时才推送或开 PR
 ```
@@ -78,6 +80,19 @@ dev（本技能，内层循环）
   "rounds_max": 5,
   "rounds_done": 0,
   "phase": "criteria",
+  "arch_contract": {
+    "path": ".arch.json",
+    "origin": "existing",
+    "layers": 5,
+    "verify": "pass",
+    "blind_spots": [
+      { "group": "host", "packages": 14, "touched": ["host/channelops"], "verdict": "open",
+        "evidence": "archgate 的 forbiddenImports 无 host/* 作为 key", "disposal": "本轮补规则 / 登记待解问题" }
+    ],
+    "intra_conflicts": [
+      { "pkg": "controlplane", "group": "host", "snapshot": ".dev/intra-before.txt" }
+    ]
+  },
   "metric": {
     "name": "ns_per_op",
     "direction": "lower",
@@ -100,6 +115,7 @@ dev（本技能，内层循环）
 
 - **每条验收标准必须绑定一个可执行验证方式。** 写不出 `verify` 的条目退回给用户澄清，不得留空冒充。
 - **`rounds_max` 默认 5。** 用户明确指定时以其为准。
+- **`arch_contract` 必填**（阶段 0a 的产出，不是备注）。`origin` 取值 `native`（项目自带 archgate / depguard / scripts，`path` 填它的路径）/ `existing`（仓内已有 `.arch.json`）/ `generated`（本次按 `--init` 或 `--evidence` 生成）/ `none`（仅限 0a 允许的例外，须在 `reason` 写明）；`verify` 取值 `pass` / `fail` / `skipped`。没有值就说明 0a 没做完，不允许进入阶段 1。
 - **`stop_after` 默认 `null`**（走满全流程）。合法值只有三个：`null` / `"design"` / `"slicing"`，分别表示"走满" / "阶段 1 产出后停" / "阶段 2 产出后停"。只有用户显式声明"只要设计""出设计文档就停""先别实现"等意图时才设置，不得自行推断；其它值视为非法，退回澄清。停止点只能是阶段边界，不支持在阶段中途停。
 - **`metric` 可为空对象**（无 benchmark 的项目）；此时 `metric.baseline` 保持 `null`，全流程不得出现"性能提升"的表述。
 - **`doc_path` 默认为 `null`**，指向阶段 7 文档同步要对账的设计文档。取值规则：
@@ -109,9 +125,11 @@ dev（本技能，内层循环）
   - 典型场景：第一次 dev 开发功能、第二次 dev 做性能优化并回写原功能文档——第二次在需求里指定 `doc_path`，不必重跑阶段 1。
 - **任务载体自动探测**：`gh auth status` 成功且有 `origin` 远程 → 需求可能来自 GitHub Issue（`gh issue view <N>`）；否则从 `.dev/tasks/*.md` 或用户输入读取。写回 `carrier` 字段。
 
-### 0a. 先读全局契约（在任何编辑之前）
+### 0a. 先落全局契约（在任何编辑之前；无契约则当场生成）
 
-判据不能凭空造：项目的分层规则、包边界、禁止依赖散在三处，开工前一次读完。读不到就记"无"，不要假装读过。
+分层规则、包边界、禁止依赖是判据的输入，不是"可选的参考资料"。这一节的产出是**一个真实存在、能跑出退出码的架构判定**：项目原生的 `internal/archgate` / `depguard` / `scripts/check-arch*`，或一份 `verify` 通过的 `.arch.json`。两条都没有就当场生成，不是"我读过文档了"，也不是"问用户要不要"。
+
+判据不能凭空造：分层规则、包边界、禁止依赖散在三处。`AGENTS.md` 与既有设计文档读不到就记"无"；`.arch.json` 读不到不许记"无"——它为"无"时按下面的规则生成，不是跳过。
 
 | 位置 | 读什么 | 用途 |
 |---|---|---|
@@ -121,10 +139,41 @@ dev（本技能，内层循环）
 
 规则：
 
-- **没有契约文件不等于没有契约。** 项目里已有明显分层（`internal/domain`、`internal/app`、`internal/infra` 之类）却缺 `.arch.json` 时，用一次选择题问用户是否落一份；用户说"你定"就按形态取（目录即层用 `--init`，**不要手写，也不要凭想象编层表**），把"反向依赖清单里保留 / 清理了哪几条"记进设计文档的"待解问题"。跳过这一步的代价是：之后每一轮都只能靠审阅者主观判断分层，而模型的"常识分层"与项目的实际约定往往不是一回事。
-- **目录不按层切的项目要读文档，别硬套目录惯例。** 先一句话判形态：`ls internal` 出来的是 `domain / app / infra` → 目录即层；出来的是 `order / user / billing` 且每个下面又有 `domain / infra` → 目录是**业务切片**，层在深度 2。后者（以及层只写在文档里的项目）用 `check-arch.py --evidence` 取事实清单——分组与包数、真实 import 方向、在多个父路径下重复出现的目录名、`README` / `AGENTS.md` / `docs` 里提到分层的行（带 `文件:行号`）——再据此写 `.arch.json`，切片用通配前缀 `internal/*/domain` 那种写法，新切片自动纳管。
+- **先查项目有没有原生架构判定，有就沿用它，别再落 `.arch.json`。** 顺序不能反：`internal/archgate`（Go 测试形式的 import 方向门禁）、`.golangci.yml` 里的 `depguard`、`scripts/check-arch*.sh`、自研 analyzer——任一存在即为该项目的权威契约。此时把它的**路径 + 判定口径**写进 criteria 的 `verify`（直接跑那个测试/脚本），`arch_contract.origin = native`，**不再生成 `.arch.json`**：两套分层规则并存必然漂移，失败日志还会互相矛盾（`go-gate` 文档里的反模式同款）。
+- **没有原生判定 = 无契约 = 当场生成，不是问用户"要不要落一份"。** 一旦把这件事变成选择题，答案常常是"先不用"，此后 criteria、门禁、审阅、对账四处的分层判定全部失效——"跑了多次 dev 仍然没有 `.arch.json`"就是这么来的。正确顺序是：直接按形态生成，再请用户复核 `allow` 矩阵（复核意见走"待解问题"，不阻塞开工）。先判形态：
+
+  | 形态（先 `ls internal`） | 生成方式 |
+  |---|---|
+  | 已有原生判定：`internal/archgate` / `depguard` / `scripts/check-arch*` | **不生成**，沿用它；criteria 的 `verify` 指向它 |
+  | 目录即层：出来的是 `domain / app / infra` | `check-arch.py --init --write` |
+  | 业务切片：出来的是 `order / user / billing`，每个下面又有 `domain / app / infra` | `--evidence` → 据此写 → `--verify` |
+  | 平铺包 / 按功能分包 / 无 `internal/` | `--evidence --depth 1` → 据此写 → `--verify` |
+
+  生成后必须 `--verify` 通过才算落成；`--init` 给出的"反向依赖"清单逐条看，保留还是清理的结论写进设计文档"待解问题"。
+- **不生成 `.arch.json` 的合法情形只有三种**：① 项目已有原生架构判定（沿用它，报告写"分层由 `<路径>` 判定"）；② 用户明确说"本次不要动架构契约"；③ 项目没有 `go.mod`——`check-arch.py` 依赖 `go list`，非 Go 项目没有机械判定手段，此时把层表写进 `AGENTS.md` 交给阶段 5 审阅判定，并在报告标注"分层由审阅判定，非门禁判定"。②③ 必须在 `REPORT.md` 写"未判定分层（原因）"，`criteria` 里的架构条目保持 `done=false` 并注明原因——**不得**在报告里写"架构没问题"。除此之外，"忘了生成"不属于可接受理由。
+- **切片类项目要读文档，别硬套目录惯例。** 上表第二、三行的项目，层不在深度 1，目录名只能给出候选。用 `check-arch.py --evidence` 取事实清单——分组与包数、真实 import 方向、在多父路径下重复出现的目录名、`README` / `AGENTS.md` / `docs` 里提到分层的行（带 `文件:行号`）——再据此写 `.arch.json`，切片用通配前缀 `internal/*/domain` 那种写法，新切片自动纳管。
 - **模型可以写契约，但未经自检的契约不许生效。** 写完必须跑 `check-arch.py --verify`：前缀匹配不到任何包 = 规则永不触发；一个包同时命中多个层 = 语义含糊；有包不属于任何层 = 新包会绕过判定。前两条是 FAIL，必须改到过。假契约比没有契约更坏：没有契约时人知道自己在裸奔，假契约让人以为有保护。`--init` 生成的初稿同样要过 `--verify`。
-- 契约存在时，`criteria` 必须有一条专管它（见上方 `C3` 示例）。这样门禁红了是"某条验收标准没过"，而不是一句可以商量的"建议改进"。
+- **契约存在 ≠ 管得住这次改动（第二种假判据）。** `--verify` 管的是"规则写了但永不触发"（前缀拼错）；它管不到另一种：**本次要改的包根本不在任何规则的 source 集合里**。此时门禁是绿的，但绿的不是它——再加十条规则也不影响那些包。认领契约后必须立刻算覆盖度：
+
+  ```bash
+  # 原生契约：--governed 传它的 source key（archgate 就是 forbiddenImports 的 5 个 key）
+  python3 <plugin_root>/skills/go-gate/scripts/check-arch.py --root . \
+    --blind-spots --governed session,kernel,agent,runner,channel
+  # .arch.json 契约：从 layers 直接取
+  python3 <plugin_root>/skills/go-gate/scripts/check-arch.py --root . --blind-spots --governed @config
+  ```
+
+  输出按顶层分组聚合、带退出码（有盲区 = 1），main 包自动排除（装配根不可被 import，没有"它能否依赖谁"的问题）。
+- **盲区必须处置，不许只记录。** 只有"本次会改到"的组才算相关（写进 `blind_spots[].touched`）；无关的组只记总数，否则每轮都刷同一屏于是被忽略。相关盲区每条二选一：① 在契约里补规则——这是改架构裁决，**必须用户确认**；② 登记 `verdict=decided` + 文档出处（例："§5.8：host/* 之间允许互相 import"），或写进"待解问题"且用户明确说本轮不动。`disposal` 为空的盲区**不许进入阶段 1**。
+- **层内方向单独看，因为它不受"只向下"约束。** 本次涉及的组若本身是整层（如 L6 同时装着 `telemetry` / `controlplane` / `host/*` / 装配根），跑一次：
+
+  ```bash
+  python3 <plugin_root>/skills/go-gate/scripts/check-arch.py --root . \
+    --intra --within telemetry,controlplane,host
+  ```
+
+  前缀按**包里真实的模块相对路径**写：层在顶层就写 `host`，层在 `internal/` 下就写 `internal/host`。写错不会静默——直接报"范围内没有任何包"并给出可复制的正确前缀。它只报事实：**哪个包与哪一组既在上又在下**（`→ host/audience` 同时 `← host/authz`）。两点刻意不做：不查环（Go 编译器本来就禁止 import cycle，查环是死判据）；不把"既出又入"当问题（正常分层链的中间层就是既出又入，拿它当信号会满屏假阳性）。输出存 `.dev/intra-before.txt` 作基线，阶段 5/7 比对新增项。
+- **Go 项目的 `criteria` 必须有一条专管分层**（见上方 `C3` 示例），`verify` 指向 `arch` 门禁。这样门禁红了是"某条验收标准没过"，而不是一句可以商量的"建议改进"。契约未能落下时，该条写成 `done=false` 并注明"未判定分层"，不得删除该条来回避。
 - **契约优先于代码现状。** 契约说 domain 不依赖 infra、代码早就依赖了 → 把冲突写进"待解问题"，不在实现阶段顺手清历史欠账（那是独立 `refactor` 轮次的事）。
 - **`--init` 的初稿只翻译目录惯例**：`allow` 只写外层→内层，代码里现存的反向依赖不进 `allow`，而是作为"需人工定夺"清单列出（带文件:行号）。这份清单必须逐条看——确认是欠账就在本需求之外单独立项清理，确认是合法方向才加进 `allow` 并写理由。直接把初稿提交，等于用工具给漂移盖章认证。
 
@@ -137,7 +186,9 @@ dev（本技能，内层循环）
 循环：N=5 轮，指标 <name> 方向 <lower/higher> 基线 <值或"未度量">
 停止点：<走满全流程 | 设计后停（产出一份合并文档 tasks/<id>-design.md） | 切片后停（产出 .dev/tasks/<id>.md）>
 对账文档：<doc_path 或"本次阶段 1 产出"或"无（不回写已有文档）">
-全局契约：<.arch.json N 层（含 K 个通配前缀）+ AGENTS.md K 条架构条目 | 无（已按现状落一份 / 待用户确认）>
+全局契约：<`internal/archgate`（原生，N 条 forbid）| `.arch.json` 路径（N 层，K 个通配前缀，verify pass；已存在 / 本次生成）| 未落契约（用户要求不动 / 非 Go）>
+契约覆盖：<本次改动 M 个包全部在覆盖内 | 相关盲区 K 组（逐条给 disposal）>
+层内方向：<无冲突 | `.dev/intra-before.txt` 记录了 K 处（逐条给处置）>
 出口：dev/<slug> 分支，不推送不合并
 ```
 
@@ -236,7 +287,13 @@ dev（本技能，内层循环）
 - API 设计列出每个端点的方法、路径、鉴权、请求响应结构、错误码；
 - 测试策略包含**映射表**：每条 US-N 的验收标准至少对应一个测试用例，每条 FR-N 落到某个 API 端点或业务规则；
 - **质量红线**：不许出现 TBD/TODO——要么现在解决，要么明确挪进第一部分的"待解问题"；不要复述第一部分的内容，这一部分只增加技术深度。
-- **架构一节引用全局层表，不重新描述。** 写"沿用 `.arch.json` 的 N 层；本次新增包 `x` 归 `domain` 层；新增允许边 `app → foo`"。另起一段重新画架构，等于制造第二份契约，两份必然漂移。
+- **架构一节引用全局契约，不重新描述。** 落笔前先确认被引用的东西真的存在（`test -f` 或 `test -d`），再按实际情况四选一：
+  - **有原生判定** → "分层由 `internal/archgate`（`forbiddenImports`，L0–L6 口径见 `docs/设计契约.md`）判定；本次新增包 `x` 归 L4，未新增允许方向"。
+  - **有 `.arch.json`** → "沿用 `.arch.json` 的 N 层（verify pass）；本次新增包 `x` 归 `domain` 层；新增允许边 `app → foo`"。
+  - **本次新建 `.arch.json`** → "本次新建全局契约 `.arch.json`：N 层 + K 个通配前缀，来源 `--init` / `--evidence` + 人工确认；verify pass；新增允许边与理由如下"。
+  - **明确不落**（仅限阶段 0a 允许的②③两类例外）→ "本项目无全局契约，分层由 `<文档名>` 约束；本次按 `<依据>` 定层；分层为人工审阅判定，非门禁判定"。
+
+  **禁止在文件/门禁不存在时写"沿用 `.arch.json`"**——那不是引用，是伪造依据：下一轮读到这句话的人（包括你自己）会以为有契约，于是继续不生成。另起一段重新画架构同样禁止，等于制造第二份契约，两份必然漂移。
 
 #### 文档质量闸门
 
@@ -251,6 +308,7 @@ dev（本技能，内层循环）
 - [ ] 每个英文专有名词首次出现均带中文译文，格式为"中文（English 缩写, English 全称）"，无裸英文缩写；
 - [ ] 后文出现的缩写均已在术语表登记，格式统一；
 - [ ] 代码引用符合三种性质：设计文档（活文档）只留路径 + 符号、不写行号；契约章节只写包名/接口名/端点名，不写坐标；确需坐标的证据类引用绑定 rev。
+- [ ] 架构一节提到的 `.arch.json` 要么文件真实存在，要么已写明"本次新建"或"无契约 + 依据"。写着"沿用"而文件不存在 = 不合格，重写该段并回阶段 0a 生成。
 
 ### 1c. 确认闸门
 
@@ -300,7 +358,7 @@ dev（本技能，内层循环）
 ### 3b. 实现
 
 - 只改与该假设相关的代码；不改无关代码、不顺手重构、不改测试断言。
-- **动手前看层表**：本轮新增或修改的 import 必须落在 `.arch.json` 的 allow 矩阵内。确需新方向 → 先改契约（`.arch.json`）并向用户说明理由，不要在代码里绕过去再让门禁背锅。**新建的包必须先在层表里定层**，否则 `strict.require_layer_under` 会直接判为未分层。
+- **动手前看层表**：本轮新增或修改的 import 必须落在契约允许的方向内——原生判定项目看 `forbiddenImports`（如 `internal/archgate`），`.arch.json` 项目看 `allow` 矩阵。确需新方向 → 先改契约并向用户说明理由，不要在代码里绕过去再让门禁背锅。**新建的包必须先在契约里定层**：`.arch.json` 项目否则会被 `strict.require_layer_under` 判为未分层；原生判定项目则要确认新包落在哪一层、不触发 `forbiddenImports`。
 - 改动文件数 > 5 时停下来复核假设粒度，通常意味着应该退回阶段 2 切片。
 
 **涉及 `.go` 文件时，先看索引再动手**，不要把 1139 行规则整份读进来：
@@ -326,26 +384,30 @@ bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --section <起始行
 
 | 项目类型 | 命令 |
 |---|---|
-| Go（有 `go.mod`） | `bash <plugin_root>/skills/go-gate/scripts/gate.sh --root <repo> --json [--race] [--bench='^BenchmarkX$']` |
+| Go（有 `go.mod`） | `bash <plugin_root>/skills/go-gate/scripts/gate.sh --root <repo> --json [--require-arch] [--race] [--bench='^BenchmarkX$']`（项目无原生架构判定时加 `--require-arch`） |
 | TS/JS（有 `package.json`） | `bash <plugin_root>/skills/ts-gate/scripts/ts_gate.sh --root <repo> --json [--build]` |
 | 两者都有（monorepo） | 各跑一次；改动所在那侧必须全绿，另一侧若被波及也要跑 |
 | 都没有 | 跳过门禁，并在报告里写明"本项目无可用门禁"——**不得**用模型自评代替 |
 
+- `--require-arch` 让"没有契约"变成门禁失败，而不是一句可忽略的 skip——它不是额外要求，只是把 0a 的产出用退出码兜住。项目已有原生架构判定（`origin=native`）时不要带这个参数，改为在 criteria 里直接跑那个原生脚本/测试；带上去只会因为"没有 `.arch.json`"报一个与事实相反的红灯。
+- 原生判定与 `go-gate` 的 `arch` 段**不要同时启用**：两套分层规则并存必然漂移（见 `go-gate` 反模式）。有 `internal/archgate` 之类就只跑它。
 - `ok=false` → 读 `log_dir/<stage>.log` 尾部，回到 3b 修复。**不得通过修改或删除测试、加 `@ts-expect-error` / `eslint-disable` 来变绿。**
 - `arch` 阶段失败（跨层依赖 / 未分层新包）→ 回 3b 把依赖方向修对；**不得**用 `--skip arch`、放宽 `allow`、往 `ignore` 加路径来变绿——那是删判据不是改代码。确需新的依赖方向时，改 `.arch.json` 并在报告"未解决"里写明理由与影响面，交用户确认。
 - `arch_verify` 失败（前缀匹配不到包 / 包多命中 / strict 路径写错）→ 错在契约不在代码：改 `.arch.json` 本身，并在报告里写明"原契约有 N 处失效规则，已修"。这类错不会让 `arch` 变红，若放着不管，之后每一轮的分层判定都是假的。
-- `arch` 阶段 skip（仓库无 `.arch.json` 或缺 python3）不算通过，报告里如实写"未判定分层"，不要说"架构没问题"。
+- `arch` 阶段 skip 且原因是"仓库无 `.arch.json`" → **这是 0a 漏做，不是通过**：回阶段 0a 按形态生成并过 `--verify`（只允许回跳 1 次），再重跑门禁。只有 0a 已登记"不落契约"的例外时才允许带着 skip 继续，且报告必须写"未判定分层（原因）"。
+- `arch` 阶段 skip 原因是缺 python3 → 环境问题，报告"未判定分层（缺 python3）"，不得声称"架构没问题"。
 - 连续 3 轮门禁失败 → 停止循环，报告"方向假设错误"，不要继续换参数重试。
 - 阶段 0 声明要做性能优化时：Go 项目 `--bench` 是强制的；TS 项目的 `--bench` **不产出 metric**，此时本轮不得标记为 `perf`，只能标 `feature` 或 `refactor`。
 
 ### 5. 审阅（独立子代理）
 
-派发一个**独立上下文**的子代理，输入四样：`git diff <base>...HEAD`、验收标准清单、本轮假设、**项目全局契约**（`AGENTS.md` 的架构条目 + `.arch.json` 的层表与 allow 矩阵；两者皆无时明确告知"本项目未声明架构契约"）。要求其输出 JSON：
+派发一个**独立上下文**的子代理，输入五样：`git diff <base>...HEAD`、验收标准清单、本轮假设、**项目全局契约**（`AGENTS.md` 架构条目 + 原生判定口径如 `forbiddenImports`，或 `.arch.json` 的层表与 allow 矩阵）、**契约覆盖结论**（`blind_spots` 与 `.dev/intra-before.txt`）。契约必须真实存在——若此处三者皆无，说明阶段 0a 漏做，回 0a 处理，不要让子代理"凭常识判断分层"。要求其输出 JSON：
 
 ```json
 {
   "blocking": [{"file":"x.go","line":42,"issue":"...","why_it_breaks":"..."}],
   "arch_drift": [{"file":"x.go","line":12,"from":"domain","to":"infra","rule":"allow[domain] 不含 infra"}],
+  "intra_layer": [{"file":"x.go","line":30,"pkg":"host/channelops","dep":"host/eval","note":"同层内新增横向依赖，契约未覆盖，需裁决"}],
   "advisory": [{"file":"x.go","line":88,"suggestion":"..."}],
   "clean": false
 }
@@ -360,6 +422,7 @@ bash <plugin_root>/skills/modern-go/scripts/modern_index.sh --section <起始行
 - **`arch_drift` 非空即按 blocking 处理，不适用"结构问题延后"。** 越界依赖今天能跑，但每多一条，下次改动要读的包就多一圈，最终整个模块都动不了。修法只有两种：把依赖倒过来，或按 go-gate 的规则改契约并拿用户确认——两者都不做，就是违规保留。
 - **契约缺失时 `arch_drift` 必须是空数组**，并在报告里记"无契约可对"。禁止让子代理"按常识判断分层"：那产出的是模型的偏好，不是项目的约定，据此提的修改建议会与项目实际分层直接冲突。
 - `arch_drift` 与 `arch` 门禁结论冲突时（门禁过、子代理报越界，或反之）**以门禁为准**，并把该条记为"契约未覆盖的方向"，属于契约本身的缺口，进"未解决"让用户补规则。
+- **`intra_layer` 只对本轮落在 `blind_spots` 里的包生效。** 已经 `decided`（有裁决出处）的同层横向依赖不报——那是已知且有据的取舍，重复报它会让子代理把"合法协作"当缺陷。非空时不按 blocking 处理，而是**拿用户确认**：新增的同层横向依赖是补规则、还是改成端口注入。判它是否"新增"用 `.dev/intra-before.txt` 比对，不凭印象。
 
 **区分 blocking 的两种性质**，处置方式完全不同：
 
@@ -457,7 +520,10 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 ## 文档同步
 <!-- 完整收尾必填。对账对象 = doc_path 指向的文档 或 本次阶段 1 产出；两者皆无写"无设计文档可核对" -->
 对账文档：<doc_path 或 tasks/<本次 id>-design.md>
-全局契约：<.arch.json 未变更 | 新增 M 条 allow 边 + 理由 | 无契约>；arch 门禁 <pass | fail | skip（原因）>
+全局契约：<.arch.json 未变更 | 本次生成（N 层，K 个通配，verify pass） | 新增 M 条 allow 边 + 理由 | 未落契约（仅限 0a 的两种例外，写原因）>；arch 门禁 <pass | fail | skip（原因）>
+契约覆盖：<0a 登记的 K 条盲区逐条处置 —— 补规则 / 登记 decided（出处）/ 进待解问题；`--blind-spots --changed-only` 复跑结论>
+层内方向：<无冲突 | `.dev/intra-before.txt` 与收尾快照比对：新增 K 处，逐条处置>
+arch_drift 与 intra_layer：<各 K 条 → 已修 / 改契约并经用户确认 / 登记待解问题>
 | # | 契约条目 | 设计值 | 实际值 | 偏差原因 | 处置（回写 / 不回写 + 理由） |
 |---:|---|---|---|---|---|
 | 1 | <API 端点 / 字段 / 错误码 / 表结构 / 测试映射> | <...> | <...> | <...> | <...> |
@@ -483,7 +549,7 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 
 **强制触发**：只要对账对象存在，完整收尾就必须对账，不等用户提醒。这覆盖两类场景——首次开发后同步本次设计文档；后续 dev（如性能优化）在需求里指定 `doc_path` 后，回写原功能文档，即使本次阶段 1 被跳过也要对账。
 
-**对账范围**：只核对第三部分（实现契约）中应落地的条目——架构、数据模型、API 端点/请求响应/错误码、业务逻辑、安全与性能约束、测试策略映射——外加**全局契约**（`.arch.json` 的层表与 allow 矩阵、`AGENTS.md` 的架构条目）。第一、二部分（产品需求、设计取舍）不因实现细节变更而回写，除非实现推翻了 Rationale 中被弃方案的理由——那属于方向性变更，必须用户确认。
+**对账范围**：只核对第三部分（实现契约）中应落地的条目——架构、数据模型、API 端点/请求响应/错误码、业务逻辑、安全与性能约束、测试策略映射——外加**全局契约**（原生架构判定的 `forbiddenImports`、`.arch.json` 的层表与 allow 矩阵、`AGENTS.md` 的架构条目）。第一、二部分（产品需求、设计取舍）不因实现细节变更而回写，除非实现推翻了 Rationale 中被弃方案的理由——那属于方向性变更，必须用户确认。
 
 **历史文档的特殊约束**：对账 `doc_path` 指向的旧文档时，只回写**本次改动实际触及**的契约条目，不得根据"旧文档与当前代码的其他差异"顺手补全——那些差异属于历史欠账，只在报告的"未解决"里列出。例如性能优化只改了实现与性能约束，就不要顺带改 API 端点描述。
 
@@ -578,8 +644,12 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 | `stop_after=design` 但阶段 1 被跳过 | 回到阶段 0 澄清设计文档的归属，不空手进收尾 |
 | 起始门禁就失败 | 先修复到全绿再进入 round 1，作为 `round 0` 记录，不占 `rounds_max` |
 | `arch` 门禁报警（跨层依赖 / 未分层新包） | 回 3b 修依赖方向；不得 `--skip arch`、放宽 `allow`、往 `ignore` 加路径。确需新方向 → 改 `.arch.json` 并请用户确认，列入"未解决" |
-| 项目有明显分层但无 `.arch.json` | 阶段 0a 用 `check-arch.py --init` 生成初稿，逐条复核"反向依赖"清单；不要手写，也不要把现状全放行 |
+| 项目有分层迹象但无 `.arch.json` | **先查原生判定**（`internal/archgate`、`depguard`、`scripts/check-arch*`）：有则沿用它，不再造 `.arch.json`；没有则按形态当场生成（目录即层 `--init --write`；切片/平铺 `--evidence` → 写 → `--verify`）。只有用户明确要求不动契约、或非 Go 项目时才豁免，且须在报告登记"未判定分层" |
+| 跑到阶段 4/5 才发现没有 `.arch.json` | 0a 漏做：回 0a 生成（每需求最多回跳 1 次），不在门禁里用 `--skip arch` 糊过去 |
 | 子代理报 `arch_drift`，但项目无契约 | 该条作废，记"无契约可对"；不许凭印象补规则再据此提修改 |
+| `--blind-spots` 报本次要改的包是盲区 | **不是可忽略的提示**。二选一：补规则（改裁决，须用户确认）或登记 `decided`+文档出处。两者都不做就不许进阶段 1——否则那条 `arch` 判据对本次改动是真空绿 |
+| `--intra` 报某包与一组既在上又在下 | 先查该组内部是否已有裁决（例：§5.8 的 host/* 之间允许互相 import）。有 → 登记出处；无 → 拿用户拍板定方向，不要自行决定谁在上 |
+| 写了一条"该组内部不设墙"的结论，但没写进任何文档 | 等于没裁决。下一轮还会重新发现同一个问题，且结论会随轮次漂移。写进 `AGENTS.md` 或契约出处，再登记 `decided` |
 | 第 3 轮起才发现架构早就被改坏（存量欠账） | 不在本轮修。改契约前先问用户，把清单写进"未解决"，清债走独立 `refactor` 需求 |
 | 门禁返回 rc=2 | 环境问题（无 go / 非 Go 模块 / 无 package.json），停止并报告 |
 | benchmark 抖动导致判定摇摆 | 提高 `BENCH_RUNS` 到 7；不要降低 epsilon 来"稳定"结论 |
@@ -598,6 +668,11 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 ## 反模式
 
 - 宣称"性能优化完成"但从未运行 `--bench`。
+- 把"要不要落 `.arch.json`"做成选择题，或写"沿用 `.arch.json`"而文件根本不存在——前者把必做项变可选，后者伪造依据，两者结果一样：分层判定永远不生效。
+- 项目已有 `internal/archgate` 之类的原生判定，却再生造一份 `.arch.json`——两套分层规则并存必然漂移，而且新加的那份通常更宽松，等于把严格的判据悄悄替换掉了。
+- 把"契约存在"当"契约管得住这次改动"。原生 `archgate` 只给 5 个包设了 source 规则，改 `host/*` 时它一条都不管——此时绿是真空的绿。不算 `--blind-spots` 就下"分层没问题"的结论，等于用无关的判据给本次改动背书。
+- 把"同层内既出又入"当架构缺陷。正常分层链的中间层就是既出又入（`top→mid→leaf` 的 mid）。真正的信号是**同一个包对同一组包**双向相连——不分组就报，只会把合法协作刷成满屏假阳性，然后所有人学会忽略这条告警。
+- 为一个层内结论"口头裁决"而不落文字。没有出处的 `decided` 与没有裁决等价：下一轮重新发现同一问题，结论还会漂。
 - 用户声明 `stop_after=design` 后仍进入切片或实现——停止检查在阶段边界强制执行，不因"顺手就做了"而跳过。
 - 提前停止时套用完整收尾模板，产出空的验收表/指标表/轮次表，让人误以为执行过。
 - 把"某天遇到…"式踩坑叙事、轮次号或时间点写进 AGENTS.md——那里只能放规则化条目，否则指令文件会膨胀成日志。
@@ -634,6 +709,7 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 ├── measure.cksum     基准指纹（gitignore，由 loop baseline 锁定）
 ├── hooks/after.sh    迭代钩子（可选，应提交；loop 每次记账后调用）
 ├── smell.md          存量诊断报告（可选，仅阶段 0.5；后续轮次读它而非重读源码）
+├── intra-before.txt  阶段 0a 的层内方向快照，阶段 5/7 比对新增项（不是判据，是基线）
 ├── tasks/<id>.md     切片（可选）
 ├── gate/<ts>/        每轮门禁日志（由 go-gate 写入）
 ├── ts-gate/<ts>/     同上，TS/JS 项目（由 ts-gate 写入）
@@ -641,13 +717,15 @@ bash $LOOP next     # CONTINUE <n> | STOP:target | STOP:no_improve | STOP:gate_f
 tasks/                产品需求与设计文档（阶段 1；仓库根目录下，被 git 跟踪）
 └── <id>-design.md    一份合并文档：产品需求 + 设计取舍 + 实现契约
 AGENTS.md             项目级 Agent 约定（**阶段 0a 必读**；收尾经用户确认后写入/更新，不自动提交）
-.arch.json            全局分层契约（**仓库根、入库**，不放 .dev/；阶段 0a 必读、`arch` 门禁据此判定；改动属方向性变更）
+.arch.json            全局分层契约（项目**没有** `internal/archgate` / `depguard` 之类原生判定时才落；仓库根、入库，不放 .dev/；无则在阶段 0a 当场生成并过 `--verify`；改动属方向性变更）
 dev/<slug> 分支       N 个（或更少）round commit
 ```
 
 `tasks/` 是过程产物的归属地，不搬到 `docs/`、也不复制副本——`docs/` 面向最终用户与团队，是稳定发布物的位置；设计文档会随实现反复修订，放 `docs/` 会混入中间态。仓库根 `.gitignore` 只忽略 `.dev/`，所以 `tasks/` 下的文档天然被 git 跟踪，团队可见可 review。需要归档到 `docs/` 时由人决定，且是移动而非复制，避免两份副本漂移。
 
 `AGENTS.md` 位于**目标项目根**（不是 `.dev/` 下），内容是规则化条目而非经验叙事。它是**双向的**：阶段 0a 开工前必须读（架构约定、禁止依赖、易错配置），收尾经用户确认后可写入或更新；写入前须与已有条目语义去重。写入不自动提交。它是团队共享的 Agent 指令文件，与本地不入库的 `.workbuddy/memory/` 工作日志用途不同，不要混为一谈。
+
+`blind_spots` 记在 `run.json` 的 `arch_contract` 下，不入库（`.dev/` 整体被忽略）。它是**本项目的结构现状**而非单次需求的产物——所以"某个组是盲区"这件事如果不落进 `AGENTS.md` 或契约出处，下一个需求还会重新算一遍、重新发现一次。这也正是 `decided` 必须带出处的原因。
 
 `.arch.json` 是**全局契约**，与 `tasks/<id>-design.md` 的分工不能混：设计文档说"本次需求怎么建"，`.arch.json` 说"这个项目允许谁依赖谁"。前者一需求一份、会随需求增多；后者全项目唯一、必须稳定。只有后者能阻止"每个新需求都把架构重新描述一遍"的漂移。**它放仓库根并入库，不放 `.dev/`**——`.dev/` 被 gitignore，只服务单次需求的过程记录（`run.json`、门禁日志、`smell.md`、`REPORT.md`），契约放进去就变成"本机约定"，CI、其它机器、后续需求都继承不到。非 Go 项目目前没有对应的确定性门禁，阶段 5 的审阅子代理按同一份层表判定，并在报告里标注"分层由审阅判定，非门禁判定"。
 

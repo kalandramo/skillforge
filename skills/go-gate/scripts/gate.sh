@@ -11,9 +11,10 @@
 # 用法：
 #   gate.sh [--root DIR] [--json] [--race] [--bench[=PATTERN]]
 #           [--base REV] [--allow-mod-changes] [--skip a,b,c]
-#           [--arch-config FILE]
+#           [--arch-config FILE] [--require-arch]
 #
 # 环境变量：BENCH_RUNS、BENCH_PKG、ARCH_CONFIG（默认 .arch.json）、ARCH_VERIFY（默认 1）
+# --require-arch：缺契约直接判失败（dev 循环默认带；无契约就不该声称架构没问题）
 #
 # 退出码：0 = 全部门禁通过（或跳过）；1 = 有门禁失败；2 = 环境不可用
 
@@ -26,6 +27,7 @@ BENCH=0
 BENCH_PATTERN="."
 BASE_REV=""
 ALLOW_MOD=0
+REQUIRE_ARCH=0
 SKIP=""
 ARCH_CONFIG="${ARCH_CONFIG:-.arch.json}"
 BENCH_RUNS="${BENCH_RUNS:-3}"
@@ -42,6 +44,7 @@ while [ $# -gt 0 ]; do
     --allow-mod-changes) ALLOW_MOD=1; shift ;;
     --skip)   SKIP="$2"; shift 2 ;;
     --arch-config) ARCH_CONFIG="$2"; shift 2 ;;
+    --require-arch) REQUIRE_ARCH=1; shift ;;
     -h|--help) awk 'NR>1 { if ($0 == "") exit; sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
     *) echo "未知参数: $1" >&2; exit 2 ;;
   esac
@@ -166,15 +169,22 @@ if skipped arch; then
   echo "  [SKIP] arch"; record arch skip 0 0
   echo "  [SKIP] arch_verify"; record arch_verify skip 0 0
 elif [ ! -f "$ARCH_CONFIG_ABS" ]; then
-  echo "  [SKIP] arch (仓库无 ${ARCH_CONFIG}，无架构契约可判)"
-  echo "         目录按层切:  python3 $ARCH_SCRIPT --root $ROOT --init          # 打印初稿（含反向依赖清单）"
-  echo "         目录不按层切: python3 $ARCH_SCRIPT --root $ROOT --evidence    # 包图+重复目录名+文档分层陈述，交给模型写契约"
-  echo "         落盘后自检:   python3 $ARCH_SCRIPT --root $ROOT --verify"
-  record arch skip 0 0
+  if [ "$REQUIRE_ARCH" -eq 1 ]; then
+    echo "  [FAIL] arch (缺少 ${ARCH_CONFIG}，且已声明 --require-arch：本项目必须先落契约)"
+    echo "         目录按层切:  python3 $ARCH_SCRIPT --root $ROOT --init --write"
+    echo "         目录不按层切: python3 $ARCH_SCRIPT --root $ROOT --evidence  # 据此写，再 --verify"
+    record arch fail 2 0; record arch_verify fail 2 0; FAILED=1
+  else
+    echo "  [SKIP] arch (仓库无 ${ARCH_CONFIG}，无架构契约可判)"
+    echo "         目录按层切:  python3 $ARCH_SCRIPT --root $ROOT --init          # 打印初稿（含反向依赖清单）"
+    echo "         目录不按层切: python3 $ARCH_SCRIPT --root $ROOT --evidence    # 包图+重复目录名+文档分层陈述，交给模型写契约"
+    echo "         落盘后自检:   python3 $ARCH_SCRIPT --root $ROOT --verify"
+    record arch skip 0 0; record arch_verify skip 0 0
+  fi
 elif [ -z "$GATE_PY" ]; then
-  echo "  [SKIP] arch (未找到 python3/python/py)"; record arch skip 0 0
+  echo "  [SKIP] arch (未找到 python3/python/py)"; record arch skip 0 0; record arch_verify skip 0 0
 elif [ ! -f "$ARCH_SCRIPT" ]; then
-  echo "  [SKIP] arch (缺 check-arch.py，应与 gate.sh 同目录)"; record arch skip 0 0
+  echo "  [SKIP] arch (缺 check-arch.py，应与 gate.sh 同目录)"; record arch skip 0 0; record arch_verify skip 0 0
 else
   ARCH_ARGS=(--root "$ROOT" --config "$ARCH_CONFIG_ABS")
   if detect_base; then

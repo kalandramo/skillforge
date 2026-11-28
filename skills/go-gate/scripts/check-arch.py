@@ -10,9 +10,11 @@
   python3 scripts/check-arch.py --init [--write] [--force] [--config FILE]
   python3 scripts/check-arch.py --evidence [--depth N]
   python3 scripts/check-arch.py --verify [--config FILE]
+  python3 scripts/check-arch.py --blind-spots --governed SPEC [--changed-only] [--base REV]
+  python3 scripts/check-arch.py --intra [--within SPEC] [--exclude SPEC]
 
-退出码：0 = 无违规（或初稿/证据生成成功、契约自检通过）；1 = 有违规或契约有错；
-        2 = 配置或环境不可用。
+退出码：0 = 无违规（或初稿/证据生成成功、契约自检通过、改动全部在契约覆盖内）；
+        1 = 有违规 / 契约有错 / 有盲区；2 = 配置或环境不可用。
 
 三种"写契约"的路径，选一条：
   --init       目录按惯例分层（domain/app/infra/transport），机械可推导，零猜测。
@@ -61,6 +63,23 @@
   **代码里现有的反向依赖不会写进 allow**——那等于把漂移固化成规范。它们会被列进
   "需人工定夺"清单，由人决定清理还是显式放行。去掉这一步人工作业，等于让门禁
   抄一份现状当标准。
+
+覆盖度（--blind-spots）——第二种假判据的解药：
+  --verify 管的是"规则写了但永不触发"（前缀拼错）。它管不到另一种：**这次改动的
+  包根本不在任何规则的 source 集合里**。此时门禁是绿的，但绿的不是它——加十条规则
+  也不影响那些包。原生契约（如 `internal/archgate` 的 forbiddenImports）只有 5 个
+  key，91 个包里 73 个没有 source 规则，就是这种状态。
+
+  这里只做集合运算，**不反推分层**：受约束范围由 --governed 显式给出——
+    --governed host/**,controlplane,telemetry   模块相对包前缀或通配
+    --governed @config                            从 .arch.json 的 layers 自动取
+  main 包自动排除：装配根不可被 import，天然没有"它能否依赖谁"的问题。
+
+层内方向（--intra）——七层管不到的地方：
+  "依赖只向下"在**同一层内部**没有定义：层内谁在上是团队约定，脚本不裁决。
+  它只给事实：强连通分量（真环）、双向直接依赖、以及**枢纽包**（层内既依赖别人
+  又被别人依赖）。枢纽包是层内需要细分的信号，不是违规——所以默认只 WARN，
+  出现真环才返回 1。
 """
 
 import argparse
@@ -74,6 +93,23 @@ import sys
 def die(msg, code=2):
     sys.stderr.write("check-arch: %s\n" % msg)
     sys.exit(code)
+
+
+def norm_prefix(p, mod):
+    """包前缀归一化为绝对 import path。
+
+    契约允许两种写法：绝对路径（`example.com/x/internal/domain`，--init 生成的写法）
+    或模块相对路径（`internal/domain`，手写时的习惯）。匹配前必须统一，
+    否则 layer_of() 对模块相对写法恒返回 None，门禁会**静默放过所有包**——
+    这是真空绿，比报错更危险。以 * 打头的裸通配无从补前缀，原样保留。
+    """
+    if not mod or not p:
+        return p
+    if p == mod or p.startswith(mod + "/"):
+        return p
+    if p.startswith("*"):
+        return p
+    return mod + "/" + p
 
 
 def load_config(root, path):
@@ -90,6 +126,11 @@ def load_config(root, path):
     for name, prefixes in cfg["layers"].items():
         if not isinstance(prefixes, list) or not prefixes:
             die("layers.%s 必须是非空数组" % name)
+
+    # 所有包前缀统一成绝对路径，后面 check/verify/blind-spots/intra 共用同一套语义。
+    mod = module_path(root)
+    for name in list(cfg["layers"]):
+        cfg["layers"][name] = [norm_prefix(p, mod) for p in cfg["layers"][name]]
     allow = cfg.get("allow", {})
     if not isinstance(allow, dict):
         die("allow 必须是对象：层名 -> 允许依赖的层名数组")
@@ -106,7 +147,13 @@ def load_config(root, path):
             die("forbid.to 必须是数组")
         if rule["from"] in cfg["layers"]:
             continue
-        # from 也可以是包路径前缀，但必须能被任何 layers 前缀/ignore 覆盖的可能性无从校验，放行
+        # from 也可以是包路径前缀（此时归一化到绝对路径）；无法覆盖的情形无从校验，放行
+        rule["from"] = norm_prefix(rule["from"], mod)
+    if isinstance(cfg.get("ignore"), list):
+        cfg["ignore"] = [norm_prefix(p, mod) for p in cfg["ignore"]]
+    strict = cfg.get("strict")
+    if isinstance(strict, dict) and isinstance(strict.get("require_layer_under"), list):
+        strict["require_layer_under"] = [norm_prefix(p, mod) for p in strict["require_layer_under"]]
     return cfg
 
 
@@ -199,7 +246,20 @@ def changed_dirs(root, base):
 
 
 def autodetect_base(root):
-    for cand in ("origin/main", "origin/master", "main", "master"):
+    """基线：当前分支 upstream → origin/main → origin/master。
+
+    **刻意不用本地 main/master**：本地分支就是当前工作，`git diff master...HEAD`
+    在未推送时恒为空，changed-only 会静默放过一切。gate.sh 的 detect_base 同此口径。
+    """
+    proc = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+        cwd=root, capture_output=True, text=True,
+    )
+    if proc.returncode == 0:
+        up = proc.stdout.strip()
+        if up:
+            return up
+    for cand in ("origin/main", "origin/master"):
         proc = subprocess.run(
             ["git", "rev-parse", "--verify", "-q", cand],
             cwd=root, capture_output=True, text=True,
@@ -207,6 +267,48 @@ def autodetect_base(root):
         if proc.returncode == 0:
             return cand
     return None
+
+
+def parse_prefixes(spec, mod):
+    """逗号分隔的包前缀 → 绝对包路径列表。归一化规则见 norm_prefix。"""
+    out = []
+    for item in (s.strip().rstrip("/") for s in spec.split(",")):
+        if not item:
+            continue
+        out.append(norm_prefix(item, mod))
+    return out
+
+
+def go_list_names(root):
+    """{包路径: 包名}。用来识别 main 包（装配根不可被 import，不该算盲区）。"""
+    proc = subprocess.run(
+        ["go", "list", "-f", "{{.ImportPath}}\t{{.Name}}", "./..."],
+        cwd=root, capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        return {}
+    out = {}
+    for line in proc.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 2:
+            out[parts[0]] = parts[1]
+    return out
+
+
+def top_group(pkg, mod):
+    """分组键：模块相对路径中第一个有语义的段，跳过 internal/pkg/src 容器目录。
+
+    不能直接取首段：Go 仓库绝大多数包都在 internal/ 下，取首段会让所有包落进
+    同一个 "internal" 组，--intra 于是把单向链的中间层（top→mid→leaf 的 mid，
+    合法地既出又入）误判成"与同一组双向相连"。跳过容器段才落到真正的分组名。
+    """
+    rel = pkg[len(mod) + 1:] if mod and pkg.startswith(mod + "/") else pkg
+    segs = [s for s in rel.split("/") if s]
+    if not segs:
+        return pkg
+    if len(segs) > 1 and segs[0] in CONTAINERS:
+        return segs[1]
+    return segs[0]
 
 
 def find_import_site(pkg_dir, imp):
@@ -541,6 +643,219 @@ def do_verify(root, config_path):
     return 0
 
 
+def do_blind_spots(root, config_path, governed_spec, exclude_spec, changed_only, base):
+    """契约覆盖度：改动的包里，哪些不在契约的 source 集合内。
+
+    契约存在 ≠ 契约管得住这次改动，这是 --verify 管不到的第二种假判据：
+    规则全对、门禁全绿，但本次改动的包一条规则都不涉及它。只做集合运算，
+    受约束范围必须由调用方显式给出（--governed），脚本不反推分层。
+    """
+    mod = module_path(root)
+    if not mod:
+        die("读不到模块路径（go.mod 的 module 行）")
+
+    if governed_spec == "@config":
+        cfg_path = os.path.join(root, config_path)
+        if not os.path.isfile(cfg_path):
+            die("%s 不存在，无法从 layers 取受约束范围；改用 --governed <包前缀,...>" % config_path)
+        cfg = load_config(root, config_path)
+        governed = []
+        for _name, pres in cfg["layers"].items():
+            governed.extend(pres)
+    else:
+        governed = parse_prefixes(governed_spec, mod)
+    if not governed:
+        die("--governed 为空：受约束范围必须显式给出，否则全部包都会被算成盲区")
+
+    excludes = parse_prefixes(exclude_spec, mod) if exclude_spec else []
+    names = go_list_names(root)
+    pkgs = go_list(root)
+    pkg_dirs = {p: d for p, d, _i in pkgs}
+
+    def excluded(pkg):
+        return any(in_prefix(pkg, x) for x in excludes)
+
+    def governed_by(pkg):
+        for prefix in governed:
+            if layer_prefix_match(pkg, prefix):
+                return prefix
+        return None
+
+    def is_main(pkg):
+        name = names.get(pkg)
+        if name is not None:
+            return name == "main"
+        # go list -f {{.Name}} 失败时退化：装配根习惯落在 cmd/*/ 下
+        return "/cmd/" in "/" + pkg or pkg.endswith("/main")
+
+    mains = [p for p in pkg_dirs if is_main(p) and not excluded(p)]
+    candidates = [p for p in pkg_dirs if not is_main(p) and not excluded(p)]
+    covered = [p for p in candidates if governed_by(p)]
+    blind = [p for p in candidates if not governed_by(p)]
+
+    restrict = None
+    mode = "all"
+    if changed_only:
+        base_rev = base or autodetect_base(root)
+        if not base_rev:
+            print("  [warn] 未探测到基线（无 upstream、无 origin/main），退化为全量")
+        else:
+            dirs = changed_dirs(root, base_rev)
+            if dirs is None:
+                print("  [warn] 无法计算 %s 之后的变更，退化为全量" % base_rev)
+            else:
+                restrict = dirs
+                mode = "changed-only(%s)" % base_rev
+
+    if restrict is not None:
+        touched = [p for p in candidates if os.path.abspath(pkg_dirs[p]) in restrict]
+        blind = [p for p in touched if not governed_by(p)]
+        covered_touched = len(touched) - len(blind)
+    else:
+        touched = candidates
+        covered_touched = len(covered)
+
+    print("check-arch --blind-spots：模块 %s，%d 个包（%d 个 main 包已排除，mode=%s）"
+          % (mod, len(candidates), len(mains), mode))
+    print("  受契约约束 %d 个（%d 条前缀）；无 source 规则 %d 个"
+          % (len(covered), len(governed), len(blind)))
+
+    if restrict is not None:
+        print("  本次改动 %d 个包，其中 %d 个受约束 / %d 个盲区"
+              % (len(touched), covered_touched, len(blind)))
+
+    if not blind:
+        print("  [ OK ] 改动包全部在契约覆盖内 —— 分层门禁对这些包是有效判据")
+        return 0
+
+    groups = {}
+    for pkg in blind:
+        groups.setdefault(top_group(pkg, mod), []).append(pkg)
+    print("  无 source 规则的包，按顶层分组：")
+    for name in sorted(groups, key=lambda k: (-len(groups[k]), k))[:12]:
+        members = sorted(groups[name])
+        sample = ", ".join(m[len(mod) + 1:] if m.startswith(mod + "/") else m for m in members[:3])
+        print("    %-18s %3d 个包   例：%s" % (name, len(members), sample))
+    if len(groups) > 12:
+        print("    … 另有 %d 个分组未列出" % (len(groups) - 12))
+
+    scope = "本次改动的 %d 个包" % len(blind) if restrict is not None else "这 %d 个包" % len(blind)
+    print("  [FAIL] %s 不在契约的 source 集合里 —— 这些包上的 arch 门禁是真空的绿。" % scope)
+    print("         处置二选一：① 在契约里补规则（改裁决，需人确认）；② 若该层内"
+          "「有意不设墙」已有文档裁决，登记为 decided 并在报告里写明出处。")
+    print("         不得把这条静默跳过：green 不代表判据成立，只代表判据没看它。")
+    return 1
+
+
+def suggest_prefix(raw, pkgs, mod):
+    """给写错的包前缀找一个候选：把 raw 当作某个路径段，返回截到该段的完整前缀。
+
+    存在意义是 `--within host` 这类写法：包其实在 internal/host 下，
+    少写一层就匹配不到任何包。报错必须直接给出可复制的正确写法，
+    否则用户只会看到"范围内没有任何包"然后去猜。
+    """
+    raw = raw.strip().strip("/")
+    if not raw:
+        return None
+    for p in sorted(pkgs, key=len):
+        segs = (p[len(mod) + 1:] if mod and p.startswith(mod + "/") else p).split("/")
+        if raw in segs:
+            return "/".join(segs[:segs.index(raw) + 1])
+    return None
+
+
+def do_intra(root, within_spec, exclude_spec):
+    """层内方向事实：哪个包与哪一组"既在上又在下"。
+
+    为什么**不查环**：Go 编译器本身禁止 import cycle，`go list` 遇到环直接报错，
+    所以"真环"在 Go 里不可能存在。七层模型管不到 L6 内部，不是因为那里有环，
+    而是因为那里**没有环、方向却互不一致**。
+
+    为什么不用"既出又入"做判据：正常的分层链 top→mid→leaf 里，mid 也是既出又入，
+    但它是干净的中间层，报它就是假阳性。真正的信号是**同一个包与同一组包双向相连**：
+    controlplane → host/{audience,membership,receipts,routing}，同时又
+    host/{authz,channelops,dispatch,sessionops} → controlplane —— 对 host 这一组，
+    它既在上又在下，不存在自洽的层序。分组键取模块相对路径首段，
+    所以 top/mid/leaf 这种平铺模块不会互相误判。
+
+    脚本只给事实，谁该在上是团队约定，不裁决；已有文档裁决的（如 host/* 之间
+    允许互相 import）登记出处即可，不必改代码。
+    """
+    mod = module_path(root)
+    pkgs = go_list(root)
+    pkg_dirs = {p: d for p, d, _i in pkgs}
+
+    scope = set(pkg_dirs)
+    if within_spec:
+        prefixes = parse_prefixes(within_spec, mod)
+        scope = {p for p in pkg_dirs if any(layer_prefix_match(p, x) for x in prefixes)}
+    if exclude_spec:
+        for x in parse_prefixes(exclude_spec, mod):
+            scope = {p for p in scope if not in_prefix(p, x)}
+    if not scope:
+        hints = []
+        for raw in (within_spec or "").split(","):
+            cand = suggest_prefix(raw, pkg_dirs, mod)
+            if cand and cand != raw.strip().strip("/"):
+                hints.append("%s → 写成 %s" % (raw.strip(), cand))
+        msg = "--within 范围内没有任何包，检查写法（模块相对路径，逗号分隔）"
+        if hints:
+            msg += "\n  包里存在同名段，但前缀少了一层：" + "；".join(hints)
+        die(msg)
+
+    out_by, in_by = {}, {}
+    for pkg, _d, imports in pkgs:
+        if pkg not in scope:
+            continue
+        for imp in imports:
+            if imp not in scope or imp == pkg:
+                continue
+            out_by.setdefault(pkg, set()).add(imp)
+            in_by.setdefault(imp, set()).add(pkg)
+
+    def short(p):
+        return p[len(mod) + 1:] if mod and p.startswith(mod + "/") else p
+
+    def group(p):
+        return top_group(p, mod)
+
+    label = "全模块" if not within_spec else within_spec
+    total_edges = sum(len(v) for v in out_by.values())
+    print("check-arch --intra：范围 %s，%d 个包，内部边 %d 条" % (label, len(scope), total_edges))
+    if not total_edges:
+        print("  [ OK ] 范围内没有包间依赖，不存在层内方向问题")
+        return 0
+
+    conflicts = []
+    for pkg in sorted(scope):
+        outs, ins = out_by.get(pkg, set()), in_by.get(pkg, set())
+        if not outs or not ins:
+            continue
+        shared = {group(x) for x in outs} & {group(x) for x in ins}
+        if not shared:
+            continue
+        for g in sorted(shared):
+            to_g = sorted(short(x) for x in outs if group(x) == g)
+            from_g = sorted(short(x) for x in ins if group(x) == g)
+            conflicts.append((pkg, g, to_g, from_g))
+
+    if not conflicts:
+        print("  方向一致：没有任何包与同一组包双向相连 —— 该范围可视为一个自洽的层，无需细分")
+        return 0
+
+    print("  方向不一致 %d 处（同一个包对同一组包既在上又在下，层内不存在自洽层序）：" % len(conflicts))
+    for pkg, g, to_g, from_g in conflicts[:10]:
+        print("    %s  ⇄  %s 组" % (short(pkg), g))
+        print("        → %s" % ", ".join(to_g))
+        print("        ← %s" % ", ".join(from_g))
+    if len(conflicts) > 10:
+        print("    … 另有 %d 处未列出" % (len(conflicts) - 10))
+    print("  处置：给该包定一个方向（另一个方向改成端口注入），或把该组拆成两个子层。")
+    print("        若「这一组内部不设墙」已有文档裁决，登记出处即可，不必改代码——")
+    print("        但登记要能在报告里查到，否则下一轮还会重新发现同一个问题。")
+    return 0
+
+
 def do_init(root, config_path, write, force):
     mod = module_path(root)
     if not mod:
@@ -683,6 +998,16 @@ def main():
     ap.add_argument("--depth", type=int, default=2, help="配合 --evidence：按逻辑路径前 N 段聚合（默认 2）")
     ap.add_argument("--verify", action="store_true",
                     help="契约自检：前缀是否匹配到包、包是否都归层、多命中、forbid 是否永不触发")
+    ap.add_argument("--blind-spots", action="store_true",
+                    help="契约覆盖度：改动包中哪些不在契约的 source 集合里（第二种假判据）")
+    ap.add_argument("--governed", default="@config",
+                    help="配合 --blind-spots：受约束的包前缀，逗号分隔；@config 表示从 layers 取")
+    ap.add_argument("--exclude", default=None,
+                    help="配合 --blind-spots/--intra：排除的包前缀，逗号分隔（生成目录、测试夹具）")
+    ap.add_argument("--intra", action="store_true",
+                    help="层内方向事实：枢纽包（层内既有出边又有入边；不裁决谁该在上）")
+    ap.add_argument("--within", default=None,
+                    help="配合 --intra：只看这个包前缀范围内（默认全模块）")
     args = ap.parse_args()
 
     root = os.path.abspath(args.root)
@@ -698,6 +1023,11 @@ def main():
         return do_evidence(root, args.depth)
     if args.verify:
         return do_verify(root, args.config)
+    if args.blind_spots:
+        return do_blind_spots(root, args.config, args.governed, args.exclude,
+                              args.changed_only and not args.all, args.base)
+    if args.intra:
+        return do_intra(root, args.within, args.exclude)
 
     cfg = load_config(root, args.config)
     layers = cfg["layers"]

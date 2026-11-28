@@ -112,6 +112,41 @@ python3 $S --root . --verify                  # 写完自检，必须过
 
 `--changed-only` + 基线（走 `git diff base...HEAD`、工作树、未跟踪文件三源并集）把检查范围限定到本次改动的包，与 lint 同一套取舍。base 探测：`--base` → 当前分支 upstream → `origin/main` → `origin/master`；**刻意不用本地 `main`/`master`**（本地分支就是当前工作，拿它当基线等于静默放过）。探测不到基线则全量检查，此时存量违规会如实报出来。
 
+**覆盖度（`--blind-spots`）——第二种假判据。**
+
+`--verify` 管的是"规则写了但永不触发"（前缀拼错）；它管不到另一种：**这次改的包根本不在任何规则的 source 集合里**。原生契约尤其容易这样——`internal/archgate` 的 `forbiddenImports` 只有 5 个 key，而模块有 91 个包，其中 73 个没有任何 source 规则。改那些包时 `arch` 门禁是绿的，但绿的不是它。
+
+```bash
+python3 .../check-arch.py --root . --blind-spots --governed session,kernel,agent,runner,channel
+python3 .../check-arch.py --root . --blind-spots --governed @config          # 从 layers 自动取
+python3 .../check-arch.py --root . --blind-spots --governed @config --changed-only
+```
+
+它**只做集合运算，不反推分层**：受约束范围必须由 `--governed` 显式给出（原生契约从规则 key 读，`.arch.json` 用 `@config`）。main 包自动排除——装配根不可被 import，没有"它能否依赖谁"的问题。有盲区返回 1。
+
+输出按顶层分组聚合，因为盲区几乎总是成组出现（整层没规则，而不是零散几个包）。
+
+**层内方向（`--intra`）——七层管不到的地方。**
+
+"依赖只向下"在**同一层内部**没有定义。而 Go 的 import cycle 由编译器兜住（`go list` 遇环直接失败），所以"查环"在 Go 里是死判据——真正的问题是**没有环、方向却互不一致**：
+
+```bash
+python3 .../check-arch.py --root . --intra --within telemetry,controlplane,host
+```
+
+`--within` 按**包里真实的模块相对路径**写：层在顶层写 `host`，层在 `internal/` 下写 `internal/host`。写错会报"范围内没有任何包"并给出可复制的正确前缀。分组键会跳过 `internal`/`pkg`/`src` 这类容器目录——否则所有包都落进同一个 "internal" 组，单向链的中间层会被误判成"与同一组双向相连"。
+
+```
+  方向不一致 2 处（同一个包对同一组包既在上又在下）：
+    controlplane  ⇄  host 组
+        → host/audience, host/membership, host/receipts, host/routing
+        ← host/authz, host/channelops, host/dispatch, host/sessionops
+```
+
+刻意**不**把"既出又入"当信号：正常分层链 `top→mid→leaf` 里的 mid 也是既出又入，拿它判定会满屏假阳性。真信号是"同一个包对**同一组**包双向相连"，分组键取模块相对路径首段，所以平铺模块不会互相误判。
+
+输出是事实不是判决（退出码恒 0，除非范围内根本没有包）：谁该在上是团队约定，脚本不裁决。已有裁决的（例："host/* 之间允许互相 import，设墙会让装配根退化成上帝对象"）登记出处即可，不必改代码。
+
 替代方案：仓库已配 `golangci-lint` 的 `depguard` 也能判，两者**只留一个**——两套规则并存必然漂移。`depguard` 适合只要 deny 列表的简单项目；需要"层 + 允许矩阵 + 未分层新包"这类结构表达时用 `.arch.json`。
 
 ## 用法
@@ -134,9 +169,19 @@ bash scripts/gate.sh --base origin/develop
 
 # 自定义架构契约文件位置（默认仓库根 .arch.json）
 bash scripts/gate.sh --arch-config docs/arch/rules.json
+
+# 契约覆盖度：本次改动的包是否在规则里（不进门禁，是开工前的体检）
+python3 scripts/check-arch.py --blind-spots --governed @config --changed-only
+
+# 层内方向：某一层内部谁对同一组包既在上又在下
+python3 scripts/check-arch.py --intra --within telemetry,controlplane,host
 ```
 
-参数：`--root DIR`、`--json`、`--race`、`--bench[=PATTERN]`、`--base REV`、`--allow-mod-changes`、`--skip a,b,c`、`--arch-config FILE`。
+参数：`--root DIR`、`--json`、`--race`、`--bench[=PATTERN]`、`--base REV`、`--allow-mod-changes`、`--skip a,b,c`、`--arch-config FILE`、`--require-arch`。
+
+`check-arch.py` 除了分层判定本身，还有四类"写契约 / 查契约"的模式：`--init`（生成初稿）、`--evidence`（摊事实供人/模型写契约）、`--verify`（契约自检）、`--blind-spots --governed SPEC`（覆盖度）、`--intra --within SPEC`（层内方向）——后两者配 `--exclude SPEC` 排除生成目录。**它们都不进 `gate.sh` 的常规链路**：日常提交要过的是"代码守不守契约"，而这几项回答的是"契约本身够不够用"。唯一例外是 `arch_verify`——它挡的是假契约，属于门禁本身。
+
+`--require-arch` 把"缺 `.arch.json`"从 skip 变成 fail（退出码 1）。默认不加，是为了让未接契约的老项目仍能跑门禁；`dev` 循环会带上它，因为那一侧已经规定"无契约就当场生成"——没有契约还报绿，等于把没做的判定说成做过了。
 
 环境变量：`BENCH_RUNS`（默认 3）、`BENCH_PKG`（默认 `./...`）、`ARCH_CONFIG`（默认 `.arch.json`）、`ARCH_VERIFY`（默认 1，设 0 关掉契约自检）。
 
@@ -175,10 +220,13 @@ bash scripts/gate.sh --arch-config docs/arch/rules.json
 | 仓库有存量 lint 欠账 | 保持默认 `--new-from-rev`；不要改成全量 |
 | 未安装 golangci-lint | 自动 skip；需 lint 时先 `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` |
 | 仓库无 `scripts/check-build-tags.py` 或无 python | buildtags/buildtags_compile 自动 skip（其他项目不受影响）；有构建标签的仓库应提供该脚本 |
-| 仓库无 `.arch.json` | arch 自动 skip 并打印 `--init` / `--evidence` 提示；首次落契约先看项目形态选路径，别手写一份把现状全放行的空契约 |
+| 仓库无 `.arch.json` | arch 自动 skip 并打印 `--init` / `--evidence` 提示；接入了 dev 循环的仓库应加 `--require-arch`，让"没契约"直接失败。首次落契约先看项目形态选路径，别手写一份把现状全放行的空契约 |
 | `arch_verify` 失败 | 契约本身写错了（前缀不匹配任何包 / 包多命中）。改契约，不改代码。这类错不会让 `arch` 变红，只会让它永久静默通过 |
+| `--blind-spots` 报大批盲区 | 正常——多数契约只覆盖主链路几层。按组看：本次改到的组必须处置，没改到的只记总数。**不要为了消掉告警给无关组补规则**，那会把契约变成一份谁都不敢改的清单 |
+| 盲区看起来「本来就该自由」 | 那是裁决，不是默认。写进 `AGENTS.md` 或契约出处再按 `decided` 登记；只在对话里说一句等于没裁决，下一轮还会重新发现 |
+| `--intra` 报一组方向不一致 | 先查该组有没有「内部不设墙」的既有裁决。有 → 登记出处；没有 → 这是真的结构问题（同一个包从两个方向穿过同一组包），拿人拍板定方向，别用「务实取舍」糊过去 |
 | 存量分层违规 | 不要放宽 `allow` 抹平；用 `--all` 出一份全量清单登记为技术债，日常门禁保持"只查改动"，清理走独立 `refactor` 轮次 |
-| 已配 `depguard` | 与 `.arch.json` **二选一**；两套分层规则并存必然漂移，且失败日志会互相矛盾 |
+| 已配 `depguard` 或项目自带 `internal/archgate` 之类 | 与 `.arch.json` **二选一**，优先保留项目原生那份；两套分层规则并存必然漂移，且失败日志会互相矛盾 |
 | 测试很慢（>5 分钟） | 先 `--skip test,race` 迭代实现，收尾前跑全量；不要长期跳过 |
 | monorepo / 多模块 | 用 `--root` 指向目标模块目录，而非仓库根 |
 | 无 benchmark | 不传 `--bench`；性能阶段由编排层标记为"未度量" |
@@ -193,6 +241,10 @@ bash scripts/gate.sh --arch-config docs/arch/rules.json
 - 同时维护 `depguard` 与 `.arch.json` 两套分层规则。
 - 把 `--init` 的输出直接提交而跳过那份"反向依赖"复核清单——初稿只是把目录惯例翻译成配置，它不知道你们的约定。
 - 让模型或 Agent 直接生成 `.arch.json` 就提交，不跑 `--verify`——前缀拼错时规则永不触发，门禁长期全绿，是买了个假保险。
+- 把「`arch` 门禁绿」当成「本次改动没架构问题」。绿只说明**被规则覆盖的那部分包**没越界；改到规则外的包（`--blind-spots` 能算出来）时，那条绿与改动无关。这是比假契约更隐蔽的一类：契约是真的，判据也是真的，只是判的不是你。
+- 用「没有环」论证层内方向没问题。Go 编译器本来就禁止 import cycle，环永远查不到——L6 这类混杂层的问题是**没环、但同一个包从两个方向穿过同一组包**，只有 `--intra` 那种分组比对才看得见。
+- 把「既出又入」当层内问题的信号。正常分层链的中间层就是既出又入，不分组直接报只会制造假阳性，最后所有人都学会忽略这条告警。
+- 层内结论只在对话里裁决、不落文字。没有出处的 `decided` 等价于没裁决：下一轮重新发现同一问题，结论还会随轮次漂移。
 - 目录不按层切（垂直切片、按业务分包）却硬套 `--init`——它会把模块名（`order`、`user`）当层名，产出一份判不到任何边界的契约。
 - 手写一份 `allow` 把现状所有依赖方向全放行的 `.arch.json`——那不是契约，是把漂移盖章认证。
 - 在 `feature` 轮里顺手"把依赖方向理顺"——那属于独立 `refactor` 轮次，混进来会让指标变化无法归因。
