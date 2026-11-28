@@ -195,7 +195,7 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 | 技能 | 一句话 | 判据来源 |
 |---|---|---|
 | [`dev`](skills/dev/SKILL.md) | 一条需求进来，走完判据→读全局契约→诊断→设计→切片→实现→门禁→审阅→判定→收尾（强制核对文档与全局契约、按需沉淀踩坑到 AGENTS.md），内层循环 N 轮 | 调用下面三个 |
-| [`go-gate`](skills/go-gate/SKILL.md) | Go 门禁：`mod_guard`/`build`/`vet`/`arch`/`test`/`race`/`lint`/`bench` | 进程退出码 + bench 中位数 |
+| [`go-gate`](skills/go-gate/SKILL.md) | Go 门禁：`mod_guard`/`build`/`vet`/`arch`（+`arch_verify` 契约自检）/`test`/`race`/`lint`/`bench`；契约由 `--init`（目录即层）或 `--evidence`（垂直切片/读文档，模型写）产出 | 进程退出码 + bench 中位数 |
 | [`ts-gate`](skills/ts-gate/SKILL.md) | TS/JS 门禁：`dep_guard`/`typecheck`/`lint`（只查改动）/`test`，可选 `build`/`bench` | 进程退出码 |
 | [`loop`](skills/loop/SKILL.md) | 记账、epsilon 比较、keep/revert、账本不变量审计、基准漂移检测、确定性停止条件（含震荡检测） | 指标数值 + 账本不变量 |
 

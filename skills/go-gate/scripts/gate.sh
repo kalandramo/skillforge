@@ -13,7 +13,7 @@
 #           [--base REV] [--allow-mod-changes] [--skip a,b,c]
 #           [--arch-config FILE]
 #
-# 环境变量：BENCH_RUNS、BENCH_PKG、ARCH_CONFIG（默认 .arch.json）
+# 环境变量：BENCH_RUNS、BENCH_PKG、ARCH_CONFIG（默认 .arch.json）、ARCH_VERIFY（默认 1）
 #
 # 退出码：0 = 全部门禁通过（或跳过）；1 = 有门禁失败；2 = 环境不可用
 
@@ -164,8 +164,12 @@ case "$ARCH_CONFIG" in
 esac
 if skipped arch; then
   echo "  [SKIP] arch"; record arch skip 0 0
+  echo "  [SKIP] arch_verify"; record arch_verify skip 0 0
 elif [ ! -f "$ARCH_CONFIG_ABS" ]; then
   echo "  [SKIP] arch (仓库无 ${ARCH_CONFIG}，无架构契约可判)"
+  echo "         目录按层切:  python3 $ARCH_SCRIPT --root $ROOT --init          # 打印初稿（含反向依赖清单）"
+  echo "         目录不按层切: python3 $ARCH_SCRIPT --root $ROOT --evidence    # 包图+重复目录名+文档分层陈述，交给模型写契约"
+  echo "         落盘后自检:   python3 $ARCH_SCRIPT --root $ROOT --verify"
   record arch skip 0 0
 elif [ -z "$GATE_PY" ]; then
   echo "  [SKIP] arch (未找到 python3/python/py)"; record arch skip 0 0
@@ -179,7 +183,27 @@ else
   else
     echo "  [info] arch 未探测到基线，全量检查"
   fi
+  # 契约自检：前缀写错/包漏归层时，判定会静默全绿——比没有门禁更危险。
+  # 校验的是"规则能不能真的触发"，与本次改动无关，所以不做增量。
+  VERIFY_FAIL=0
+  if skipped arch_verify; then
+    echo "  [SKIP] arch_verify"
+    record arch_verify skip 0 0
+  elif [ "${ARCH_VERIFY:-1}" != "1" ]; then
+    echo "  [SKIP] arch_verify (ARCH_VERIFY=$ARCH_VERIFY)"
+    record arch_verify skip 0 0
+  elif "$GATE_PY" "$ARCH_SCRIPT" --root "$ROOT" --config "$ARCH_CONFIG_ABS" \
+        --verify >"$OUT_DIR/arch_verify.log" 2>&1; then
+    echo "  [ OK ] arch_verify"
+    record arch_verify pass 0 0
+  else
+    VERIFY_FAIL=1
+    echo "  [FAIL] arch_verify (契约本身有错)  日志: $OUT_DIR/arch_verify.log"
+    tail -12 "$OUT_DIR/arch_verify.log" | sed 's/^/         | /'
+    record arch_verify fail 1 0
+  fi
   run_stage arch "$GATE_PY" "$ARCH_SCRIPT" "${ARCH_ARGS[@]}" || true
+  if [ "$VERIFY_FAIL" -eq 1 ]; then FAILED=1; fi
 fi
 
 # ---- 5. 构建标签门禁（仓库提供 scripts/check-build-tags.py 时启用）----
