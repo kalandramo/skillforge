@@ -194,8 +194,8 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 
 | 技能 | 一句话 | 判据来源 |
 |---|---|---|
-| [`dev`](skills/dev/SKILL.md) | 一条需求进来，走完判据→诊断→设计→切片→实现→门禁→审阅→判定→收尾（强制核对文档同步、按需沉淀踩坑到 AGENTS.md），内层循环 N 轮 | 调用下面三个 |
-| [`go-gate`](skills/go-gate/SKILL.md) | Go 门禁：`mod_guard`/`build`/`vet`/`test`/`race`/`lint`/`bench` | 进程退出码 + bench 中位数 |
+| [`dev`](skills/dev/SKILL.md) | 一条需求进来，走完判据→读全局契约→诊断→设计→切片→实现→门禁→审阅→判定→收尾（强制核对文档与全局契约、按需沉淀踩坑到 AGENTS.md），内层循环 N 轮 | 调用下面三个 |
+| [`go-gate`](skills/go-gate/SKILL.md) | Go 门禁：`mod_guard`/`build`/`vet`/`arch`/`test`/`race`/`lint`/`bench` | 进程退出码 + bench 中位数 |
 | [`ts-gate`](skills/ts-gate/SKILL.md) | TS/JS 门禁：`dep_guard`/`typecheck`/`lint`（只查改动）/`test`，可选 `build`/`bench` | 进程退出码 |
 | [`loop`](skills/loop/SKILL.md) | 记账、epsilon 比较、keep/revert、账本不变量审计、基准漂移检测、确定性停止条件（含震荡检测） | 指标数值 + 账本不变量 |
 
@@ -207,7 +207,7 @@ Windows 且只有 PowerShell 的话，第二条命令换成 `& "$env:USERPROFILE
 |---|---:|---|---|
 | [`modern-go`](skills/modern-go/SKILL.md) | 1162 | `dev` 阶段 3，改动含 `.go` 时 | **索引脚本**：先取 30–46 行清单，命中后再抽单节 |
 | [`refactor`](skills/refactor/SKILL.md) | 716 | `dev` 阶段 5，结构性 blocking 或 `refactor` 轮次 | `grep '^### '` 定位手法，抽一节 |
-| [`smell`](skills/smell/SKILL.md) | 750 | `dev` 阶段 0.5（仅存量改造），每需求最多 1 次 | 全量读一次，报告落地后即卸载 |
+| [`smell`](skills/smell/SKILL.md) | 750 | `dev` 阶段 0.5（存量改造，或 `arch` 报警后的局部 import 图分析），每需求最多 1 次 | 全量读一次，报告落地后即卸载 |
 | [`jev-judgment`](skills/jev-judgment/SKILL.md) | 见文件 | 按需：筛查不可信文本、对照证据核实、语义选优/分类、完成门禁 | 全量读；**需宿主配置 jev MCP + TypeSafe API key**，未配置时不可用 |
 | [`principles`](skills/principles/SKILL.md) | ~100 | dev/loop/go-gate/refactor/writing 在相应阶段引用 | 按需读（参考型，非单独触发）；由 pstack 的 24 条 principle-* 合并而来，另新增 2 条 |
 | [`figure-it-out`](skills/figure-it-out/SKILL.md) | ~90 | 无更窄剧本时的通用兜底编排（/figure-it-out） | 全量读；改编并合并自 pstack 的 figure-it-out |

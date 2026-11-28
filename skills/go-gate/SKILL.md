@@ -1,7 +1,7 @@
 ---
 name: go-gate
 display_name: "Go 质量门禁（Go Gate）"
-description: "Go 项目的确定性质量门禁：mod_guard、build、vet、test、race、lint（只查基线后新增问题）与 bench（多次取中位数），输出 JSON 与退出码。当用户说「跑门禁」「Go 质量检查」「验证这个 Go 改动」「bench 对比」「性能有没有变差」时使用。非 Go 项目不适用。"
+description: "Go 项目的确定性质量门禁：mod_guard、build、vet、arch（分层依赖，读 .arch.json）、构建标签门禁（注册表+编译矩阵）、test、race、lint（只查基线后新增问题）与 bench（多次取中位数），输出 JSON 与退出码。当用户说「跑门禁」「Go 质量检查」「验证这个 Go 改动」「bench 对比」「性能有没有变差」「检查分层依赖」「架构有没有被改坏」时使用。非 Go 项目不适用。"
 user-invocable: true
 ---
 
@@ -20,6 +20,9 @@ LLM 打分制门禁有三个结构性缺陷：解析自由文本容易误判（�
 | `mod_guard` | `git diff --quiet -- go.mod go.sum` | 依赖变更必须显式批准；Agent 随手加依赖是 Go 项目最常见的隐性破坏 |
 | `build` | `go build ./...` | 编译不过，后续全部无意义 |
 | `vet` | `go vet ./...` | 捕获 printf 参数错配、锁值拷贝、不可达代码等编译器不报的真 bug |
+| `arch` | `python3 check-arch.py --config .arch.json` | **分层依赖越界**：build / vet / test 全都不会因为"domain import 了 infra"变红，架构违规在测试判据里是零信号。仓库无 `.arch.json` 则 skip；有则只查基线之后改动的包 |
+| `buildtags` | `python3 scripts/check-build-tags.py` | 自定义构建标签必须在 CI 与 Taskfile 双向登记；仓库无此脚本则 skip |
+| `buildtags_compile` | `python3 scripts/check-build-tags.py --compile` | **编译矩阵**：按标签定位 test-only 包并只编译。`./...` 看不见 `-tags=integration/soak` 后面的包，接口变更只有它能抓到（真实案例：F-01 Observer 化后 `soak_test.go` 传裸 Provider，本地全量测试全绿、CI 编译矩阵红） |
 | `test` | `go test ./...` | 行为契约 |
 | `race` | `go test -race ./...` | 并发正确性；默认关闭（慢 2–5 倍），有并发改动时必须开 |
 | `lint` | `golangci-lint run --new-from-rev=<base> ./...` | **只查新增**，见下 |
@@ -28,6 +31,47 @@ LLM 打分制门禁有三个结构性缺陷：解析自由文本容易误判（�
 ### lint 为什么必须限定基线
 
 全量 `golangci-lint` 在有历史欠账的仓库上必然失败。若把它作为门禁，循环会在第一轮就耗尽失败预算，Agent 随后会开始"修复"与本次需求无关的存量问题——这是范围失控的典型起点。`--new-from-rev` 把判据限定为"本次改动引入的问题"，与需求的边界一致。
+
+### arch 为什么必须由 import 图判定
+
+分层规则（"domain 不得 import infra"）在 build / vet / test 里**没有任何信号**：测试全绿、编译通过、指标不动，依赖方向却已经反转。这类退化只能靠 import 图判出来，且必须由项目自己的契约文件说了算——门禁不该猜项目分几层。
+
+`.arch.json` 放仓库根，示意：
+
+```json
+{
+  "layers": {
+    "domain":    ["example.com/proj/internal/domain"],
+    "app":       ["example.com/proj/internal/app"],
+    "infra":     ["example.com/proj/internal/infra"],
+    "transport": ["example.com/proj/internal/transport"]
+  },
+  "allow": {
+    "domain":    [],
+    "app":       ["domain"],
+    "infra":     ["domain", "app"],
+    "transport": ["app", "domain"]
+  },
+  "forbid": [
+    {"from": "domain", "to": ["database/sql", "gorm.io/*"]}
+  ],
+  "ignore": ["example.com/proj/internal/generated"],
+  "strict": {"require_layer_under": ["example.com/proj/internal"]}
+}
+```
+
+语义（刻意最小，避免变成配置语言）：
+
+- 包归属某层 = `layers` 前缀的最长匹配，且按路径段对齐（`internal/transport` 不匹配 `internal/transport2`）。
+- 层 → 层：只有 `allow[from]` 里列出的层可依赖；同层依赖恒允许；某层不在 `allow` 里 = 不得依赖任何其它层。
+- 非层目标（标准库、第三方）：只受 `forbid` 约束，`forbid.from` 可写层名或包路径前缀。
+- `strict.require_layer_under` 下出现**不属于任何层**的新包即违规——新包不声明层，是架构漂移最常见的起点。
+- 只统计非测试 import：测试包可以自由 import 基础设施，不被这条规则绑架。
+- 没有 `.arch.json` 就 skip，不猜项目结构。
+
+`--changed-only` + 基线（走 `git diff base...HEAD`、工作树、未跟踪文件三源并集）把检查范围限定到本次改动的包，与 lint 同一套取舍。base 探测：`--base` → 当前分支 upstream → `origin/main` → `origin/master`；**刻意不用本地 `main`/`master`**（本地分支就是当前工作，拿它当基线等于静默放过）。探测不到基线则全量检查，此时存量违规会如实报出来。
+
+替代方案：仓库已配 `golangci-lint` 的 `depguard` 也能判，两者**只留一个**——两套规则并存必然漂移。`depguard` 适合只要 deny 列表的简单项目；需要"层 + 允许矩阵 + 未分层新包"这类结构表达时用 `.arch.json`。
 
 ## 用法
 
@@ -44,13 +88,16 @@ bash scripts/gate.sh --bench --json
 # 确实需要改依赖时，显式放行（会在结果中可见）
 bash scripts/gate.sh --allow-mod-changes
 
-# 指定基线（默认自动探测 origin/main 或 origin/master）
+# 指定基线（默认自动探测 upstream / origin/main / origin/master）
 bash scripts/gate.sh --base origin/develop
+
+# 自定义架构契约文件位置（默认仓库根 .arch.json）
+bash scripts/gate.sh --arch-config docs/arch/rules.json
 ```
 
-参数：`--root DIR`、`--json`、`--race`、`--bench[=PATTERN]`、`--base REV`、`--allow-mod-changes`、`--skip a,b,c`。
+参数：`--root DIR`、`--json`、`--race`、`--bench[=PATTERN]`、`--base REV`、`--allow-mod-changes`、`--skip a,b,c`、`--arch-config FILE`。
 
-环境变量：`BENCH_RUNS`（默认 3）、`BENCH_PKG`（默认 `./...`）。
+环境变量：`BENCH_RUNS`（默认 3）、`BENCH_PKG`（默认 `./...`）、`ARCH_CONFIG`（默认 `.arch.json`）。
 
 ## JSON 契约
 
@@ -78,6 +125,7 @@ bash scripts/gate.sh --base origin/develop
 2. **`skip` 必须可解释。** 因工具缺失导致的 skip（如未装 golangci-lint）应在报告中列出；因参数导致的 skip 由编排层记录。
 3. **性能结论只在 `bench` 阶段 `pass` 且 `metric.value` 非空时成立。** 否则只能说"未度量"，不能说"没有变差"。
 4. **`mod_guard` 失败不是错误，是提示。** 若需求本身就要加依赖，用 `--allow-mod-changes` 重跑并在交付说明中写明新增依赖及理由。
+5. **`arch` 失败是结构性越界，不是可以商量的建议。** 唯一合法修法是把依赖方向倒过来（下层定义接口、上层实现）或把跨界代码挪到允许该方向的层。放宽 `allow`、往 `ignore` 里塞路径来"变绿"，等于当场删除判据。
 
 ## 常见调整
 
@@ -85,6 +133,10 @@ bash scripts/gate.sh --base origin/develop
 |---|---|
 | 仓库有存量 lint 欠账 | 保持默认 `--new-from-rev`；不要改成全量 |
 | 未安装 golangci-lint | 自动 skip；需 lint 时先 `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` |
+| 仓库无 `scripts/check-build-tags.py` 或无 python | buildtags/buildtags_compile 自动 skip（其他项目不受影响）；有构建标签的仓库应提供该脚本 |
+| 仓库无 `.arch.json` | arch 自动 skip；要判分层就先写契约——先照 `go list` 现有的包看真实分层，再写规则，别照理想图画 |
+| 存量分层违规 | 不要放宽 `allow` 抹平；用 `--all` 出一份全量清单登记为技术债，日常门禁保持"只查改动"，清理走独立 `refactor` 轮次 |
+| 已配 `depguard` | 与 `.arch.json` **二选一**；两套分层规则并存必然漂移，且失败日志会互相矛盾 |
 | 测试很慢（>5 分钟） | 先 `--skip test,race` 迭代实现，收尾前跑全量；不要长期跳过 |
 | monorepo / 多模块 | 用 `--root` 指向目标模块目录，而非仓库根 |
 | 无 benchmark | 不传 `--bench`；性能阶段由编排层标记为"未度量" |
@@ -95,5 +147,8 @@ bash scripts/gate.sh --base origin/develop
 - 为了通过门禁而 `t.Skip()`、放宽断言、删除测试用例。
 - 用 `--skip` 长期绕开 test/race，只在收尾时补跑一次。
 - 把 `--allow-mod-changes` 写进脚本默认值（等于取消依赖守卫）。
+- 用 `--skip arch` 让越界改动过关，或放宽 `allow` / 往 `ignore` 加路径来消除违规——这是删掉判据，不是修好代码。
+- 同时维护 `depguard` 与 `.arch.json` 两套分层规则。
+- 在 `feature` 轮里顺手"把依赖方向理顺"——那属于独立 `refactor` 轮次，混进来会让指标变化无法归因。
 - 用单次 benchmark 结果下结论（Go benchmark 单次抖动可达 ±20%）。
 - 把 `go test` 的缓存命中当成"刚跑过"（关键轮次加 `-count=1`）。

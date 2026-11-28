@@ -33,9 +33,12 @@ What scope should I analyze?
   B. Specific module/directory: [please specify]
   C. Only recently changed files (git diff)
   D. Only architectural-level issues (skip low-level code smells)
+  E. Only the packages touched by a diff, import graph only (no full scan) — use when a layering gate already fired
 ```
 
 If the user doesn't specify, default to option A for small projects (< 100 files) or C for large projects.
+
+**Scope E is deliberately narrow** and is what `dev` uses when `go-gate`'s `arch` stage reports a cross-layer import: analyze the import graph of the affected packages only, name the concrete direction to invert (which interface moves to which layer), and stop. It must not expand into a full architectural review — the loop is mid-flight and the budget belongs to the current hypothesis.
 
 ---
 
@@ -48,7 +51,7 @@ If the user doesn't specify, default to option A for small projects (< 100 files
 Run these in parallel to gather evidence efficiently:
 
 1. **Project Structure Scan:** Map the directory tree, identify the architectural style (layered, modular monolith, microservices, etc.)
-2. **Dependency Analysis:** Find import/include patterns, check for circular dependencies, identify coupling hotspots
+2. **Dependency Analysis:** Find import/include patterns, check for circular dependencies, identify coupling hotspots. **If `.arch.json` exists it is the authoritative layer map — judge boundaries against that file, never against a layer model you inferred yourself.** A dir tree that looks layered may not be the contract the project actually enforces; reporting "violations" of an imagined architecture is worse than reporting none.
 3. **Module/Component Scan:** Identify God Objects (files > 500 lines), check cohesion, check single responsibility violations
 4. **Pattern Detection:** Look for known anti-pattern signatures (static cling, service locator abuse, leaky abstractions)
 5. **Testing Scan:** Check test coverage patterns, test file locations, test-to-code ratios
